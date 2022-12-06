@@ -14,6 +14,7 @@ com.mjdowney/rich-comment-tests {:git/tag "v0.0.1"
 ```
 
 Inspired by the discussion in [hyperfiddle/rcf/issues/49](https://github.com/hyperfiddle/rcf/issues/49).
+Further discussion / feature requests welcome.
 
 ## Usage
 
@@ -34,16 +35,16 @@ Write rich `comment` forms as you normally would, and tag some of them with
   )
 
 (require '[com.mjdowney.rich-comment-tests :as rct])
-(rct/run-tests! *ns*)
-; FAIL in () (src/com/mjdowney/rich_comment_tests/scratch.clj:12)
+(rct/run-ns-tests! *ns*)
+; FAIL in () (scratch.clj:12)
 ; Did I make a typo here?
 ;
-; expected: (clojure.core/= (+ 1 1) 3)
-;   actual: (not (clojure.core/= 2 3))
+; expected: (= (+ 1 1) 3)
+;   actual: (not (= 2 3))
 ```
 
 I have an editor shortcut that reloads the current namespace and sends 
-`(com.mjdowney.rich-comment-tests/run-tests! *ns*)` to the REPL.
+`(com.mjdowney.rich-comment-tests/run-ns-tests! *ns*)` to the REPL.
 
 It's kind of nice that you don't even have to include this library in the 
 project itself, just in the development environment. 
@@ -63,13 +64,29 @@ from inside a `deftest`:
             [some-ns]))
 
 (deftest rich-comment-tests
-  (rct/run-tests! (find-ns 'some-ns)))
+  (rct/run-ns-tests! 'some-ns))
 ```
 
 This is what I'm doing right now to integrate these kinds of tests with normal
 Clojure unit tests, since I don't think they necessarily replace typical unit 
 testing. 
 
+## Roadmap
+- [x] Use rewrite-clj to emit clojure.test forms from rich comment blocks
+- [ ] Support multi-line result comments
+  ```clojure 
+  (map inc [1 2 3])
+  ;=> [4
+  ;    5
+  ;    6]
+  ```
+- [ ] Better integration with clojure.test. Maybe some reporting when running 
+  tests in a namespace, support for automatically discovering all tests in a 
+  directory instead of proxying via `clojure.test/deftest`.
+- [ ] Enable https://github.com/HealthSamurai/matcho patterns in addition to 
+  literal `=` assertions?
+
 ## Changes
 
-v0.01
+v0.0.1 
+- Initial working version.
