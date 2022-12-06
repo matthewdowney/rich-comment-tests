@@ -1,0 +1,9 @@
+{:paths   ["src"]
+ :deps    {org.clojure/clojure     {:mvn/version "1.11.1"}
+           rewrite-clj/rewrite-clj {:mvn/version "1.1.45"}}
+ :aliases {:test {:extra-paths ["test"]
+                  :extra-deps  {io.github.cognitect-labs/test-runner
+                                {:git/tag "v0.5.0" :git/sha "b3fd0d2"}}
+                  :main-opts   ["--report" "stderr"
+                                "-m" "cognitect.test-runner"]
+                  :exec-fn     cognitect.test-runner.api/test}}}
