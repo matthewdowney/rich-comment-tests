@@ -1,5 +1,3 @@
-;; TODO: *1 in test evaluations
-;; TODO: Handle #_#_:rct/test (comment ...)
 (ns com.mjdowney.rich-comment-tests
   (:require [clojure.string :as string]
             [clojure.test :as test]
@@ -142,7 +140,7 @@
        (mapcat rct-data-seq))
   ; [{:test (+ 1 1) :expected "2" :location [11 3]} ...]
 
-  ;; Select the very first test in the first test comment block (from line 11)
+  ;; Select the very first test in the first test comment block (from line 12)
   (->> (z/of-file *file* {:track-position? true})
        rct-zlocs
        first
@@ -150,40 +148,63 @@
        first)
   ; {...}
 
-  (select-keys *1 [:test :expected :location])
-  ;=> {:test '(+ 1 1) :expected "2" :location [11 3]}
+  (select-keys *1 [:test-sexpr :expectation-string :location])
+  ;=> {:test-sexpr '(+ 1 1) :expectation-string "2" :location [12 3]}
 
-  (-> *2 :assertion-string first)
+  (-> *2 :context-strings first)
   ;=> ";; For example, let's add two numbers.\n"
   )
 
-(defn is
-  "Like clojure.test/is, but allows passing an explicit line number and file."
-  [form message line-number file]
-  (let [args (rest form)
-        pred (first form)
-        pred1 (if (= pred `clojure.core/=) '= pred)
-        form1 (if (= (first form) `clojure.core/=)
-                (cons '= (rest form))
-                form)]
-    `(let [values# (list ~@args)
-           result# (apply ~pred values#)]
-       (if result#
+(defn throw-evaluation-error [test-form line-number file cause]
+  (throw
+    (ex-info
+      (format
+        "Exception during eval of %s at %s:%s" test-form line-number file)
+      {:test-form test-form :line-number line-number :file file}
+      cause)))
+
+(defn run-form
+  "For forms without assertions."
+  [form line-number file]
+  `(let [form-result#
+         (try ~form
+              (catch Exception e#
+                (set! *e e#)
+                (throw-evaluation-error '~form ~line-number ~file e#)))]
+     (set! *3 *2)
+     (set! *2 *1)
+     (set! *1 form-result#)))
+
+(defn assert-equal
+  "Kind of like clojure.test/is, but hard-coded for (is (= _ _))."
+  [form expectation-form message line-number file]
+  (let [test-form (list '= form expectation-form)]
+    `(let [form-result#
+           (try ~form
+                (catch Exception e#
+                  (set! *e e#)
+                  (throw-evaluation-error '~test-form ~line-number ~file e#)))
+           test-result# (= form-result# ~expectation-form)]
+
+       (set! *3 *2)
+       (set! *2 *1)
+       (set! *1 form-result#)
+
+       (if test-result#
          (test/do-report
            {:type :pass,
             :message ~message
-            :expected '~form1,
-            :actual (cons '~pred1 values#)
+            :expected '~test-form
+            :actual '~test-form
             :line ~line-number
             :file ~file})
          (test/do-report
            {:type :fail,
             :message ~message
-            :expected '~form1,
-            :actual (list '~'not (cons '~pred1 values#))
+            :expected '~test-form
+            :actual (list '~'not (list '~'= form-result# '~expectation-form))
             :line ~line-number
-            :file ~file}))
-       result#)))
+            :file ~file})))))
 
 (defn throw-bad-expectation-string
   [{:keys [context-strings test-sexpr expectation-string location] :as data}]
@@ -196,17 +217,20 @@
 
 (defn emit-test-form
   [{:keys [context-strings test-sexpr expectation-string location] :as data}]
-  (let [expectation-form (try
-                           (read-string expectation-string)
-                           (catch Exception _
-                             (throw-bad-expectation-string data)))
+  (let [expectation-form (when expectation-string
+                           (try
+                             (read-string expectation-string)
+                             (catch Exception _
+                               (throw-bad-expectation-string data))))
         form
-        (if expectation-string
-          (is `(= ~test-sexpr ~expectation-form)
-              (last context-strings)
-              (first location)
-              *file*)
-          test-sexpr)]
+        (if expectation-form
+          (assert-equal
+            test-sexpr
+            expectation-form
+            (last context-strings)
+            (first location)
+            *file*)
+          (run-form test-sexpr (first location) *file*))]
     (if-some [ctx (butlast context-strings)]
       `(test/testing ~(string/trim (apply str ctx)) ~form)
       form)))
@@ -232,14 +256,12 @@
         (str "Failed to resolve source file for namespace " for-ns)
         {:namespace for-ns}))))
 
-
 (comment
-  (def one-test
-    (->> (z/of-file *file* {:track-position? true})
-         rct-zlocs
-         (mapcat rct-data-seq)
-         (map emit-test-form)
-         (run! eval)))
+  (->> (z/of-file *file* {:track-position? true})
+       rct-zlocs
+       (mapcat rct-data-seq)
+       (map emit-test-form)
+       (run! eval))
 
   one-test
   (eval (emit-test-form (assoc one-test :expectation-string "[1 2\n")))
