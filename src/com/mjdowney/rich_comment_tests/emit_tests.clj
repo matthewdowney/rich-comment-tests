@@ -1,6 +1,7 @@
 (ns com.mjdowney.rich-comment-tests.emit-tests
   "Generate test code from parsed RCT data."
-  (:require [clojure.string :as string]
+  (:require [clojure.java.io :as io]
+            [clojure.string :as string]
             [clojure.test :as test]))
 
 (defn throw-evaluation-error [test-form line-number file cause]
@@ -39,14 +40,14 @@
             :expected '~test-form
             :actual '~test-form
             :line ~line-number
-            :file ~file})
+            :file ~(.getName (io/file file))})
          (test/do-report
-           {:type :fail,
-            :message ~message
+           {:type     :fail,
+            :message  ~message
             :expected '~test-form
-            :actual (list '~'not (list '~'= form-result# '~expectation-form))
-            :line ~line-number
-            :file ~file})))))
+            :actual   (list '~'not (list '~'= form-result# '~expectation-form))
+            :line     ~line-number
+            :file     ~(.getName (io/file file))})))))
 
 ;; Add color to the exception if the supplied expectation string is malformed
 (defn throw-bad-expectation-string
