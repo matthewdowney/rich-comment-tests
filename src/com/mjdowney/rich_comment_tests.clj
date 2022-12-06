@@ -1,9 +1,8 @@
 ;; TODO: *1 in test evaluations
-;; TODO: Pretty error handling for failed rct parsing
-;; TODO: Nomenclature (lots of things call test/assertion/etc)
 ;; TODO: Handle #_#_:rct/test (comment ...)
 (ns com.mjdowney.rich-comment-tests
   (:require [clojure.string :as string]
+            [clojure.test :as test]
             [rewrite-clj.zip :as z]))
 
 ;;; Some example code that I'd like to be able to run this on
@@ -32,12 +31,23 @@
 
 ;;; End example code
 
-(defn is-test-comment?
-  "Is the node at the `zloc` a (comment ...) block with metadata passing
-  `pred`?"
-  [zloc pred]
+;;; Nomenclature
+;
+; ^:rct/test
+; (comment            ; <- This form is the "rich comment test", rct
+;   ; Some text       ; <- Comments here are the "context strings"
+;   (+ 1 1)           ; <- the test-sexpr
+;   ;=> 2             ; <- the expectation-str
+; )
+;
+; The parsing code reads the rich comment test and generates 'test forms':
+; (clojure.test/is (clojure.core/= (+ 1 1) 2) "Some text")
+
+(defn rct?
+  "Is the node at the `zloc` a ^:rct/test (comment ...) block?"
+  [zloc]
   (when-let [sexpr (when (z/sexpr-able? zloc) (z/sexpr zloc))]
-    (and (= (first sexpr) 'comment) (pred (meta sexpr)))))
+    (and (= (first sexpr) 'comment) (:rct/test (meta sexpr)))))
 
 (defn iterate1
   "Like `clojure.core/iterate`, but stops at the first `nil` element."
@@ -47,31 +57,30 @@
           (when-some [nxt (f x)]
             (iterate1 f nxt)))))
 
-(defn test-comments
-  "Given the root zloc for a source file, return a series of test comment
-  zlocs."
+(defn rct-zlocs
+  "Given the root zloc for a source file, return a series of rct zlocs."
   [source-file-root-zloc]
   (->> source-file-root-zloc
        (iterate1 z/right)
-       (filter #(is-test-comment? % :rct/test))))
+       (filter rct?)))
 
-(defn test-comment-sexprs
-  "All sexpr-able nodes inside a ^:rct/test (comment ...) block."
-  [test-comment-zloc]
+(defn test-sexpr-zlocs
+  "All sexpr-able nodes inside a rct form."
+  [rct-zloc]
   (->>
     (iterate1
       z/right
-      (-> test-comment-zloc
+      (-> rct-zloc
           z/down
           z/right
           z/down
           z/right))
     (filter z/sexpr-able?)))
 
-(defn assertion-strings
-  "A series of string comments preceding the test expr until a line break."
-  [test-zloc]
-  (let [nodes-preceding-assertion (rest (iterate z/left* test-zloc))]
+(defn context-strings
+  "A series of string comments preceding the test sexpr (until a line break)."
+  [test-sexpr-zloc]
+  (let [nodes-preceding-assertion (rest (iterate z/left* test-sexpr-zloc))]
     (reverse
       (sequence
         (comp
@@ -91,8 +100,8 @@
   [pred coll]
   (reduce (fn [_ x] (when (pred x) (reduced x))) nil coll))
 
-(defn test-expects
-  "A string representing the expectation for a test expression.
+(defn expectation-string
+  "A string representing the expectation for a test expression (or nil if none).
 
   The expected result is designated by a =>-prefixed comment, either directly
   after or on a line following the test expression.
@@ -103,8 +112,8 @@
 
     (+ 1 1)
     ;;=> 2"
-  [test-zloc]
-  (let [nodes-following-assertion (rest (iterate z/right* test-zloc))]
+  [test-sexpr-zloc]
+  (let [nodes-following-assertion (rest (iterate z/right* test-sexpr-zloc))]
     (when-let [next-comment
                (->> nodes-following-assertion
                     (take-while z/whitespace-or-comment?)
@@ -113,31 +122,31 @@
       (when-let [[_ expected] (re-matches #"\s*;+=>\s*(.*)\n" next-comment)]
         expected))))
 
-(defn test-comment-data
-  "Parse a test comment and return a series of maps with information about
+(defn rct-data-seq
+  "Take an rct zloc and return a series of maps with information about
   tests to run."
-  [comment-zloc]
-  (for [zloc (test-comment-sexprs comment-zloc)]
-    {:assertion-string (assertion-strings zloc)
-     :test (z/sexpr zloc)
-     :expected (test-expects zloc)
+  [rct-zloc]
+  (for [zloc (test-sexpr-zlocs rct-zloc)]
+    {:context-strings (context-strings zloc)
+     :test-sexpr (z/sexpr zloc)
+     :expectation-string (expectation-string zloc)
      :location (z/position zloc)}))
 
-#_#_^:rct/test
+^:rct/test
 (comment
   ;; For example, run some tests on this source file.
 
   ;; Get the individual test assertions to run
   (->> (z/of-file *file* {:track-position? true})
-       test-comments
-       (mapcat test-comment-data))
+       rct-zlocs
+       (mapcat rct-data-seq))
   ; [{:test (+ 1 1) :expected "2" :location [11 3]} ...]
 
   ;; Select the very first test in the first test comment block (from line 11)
   (->> (z/of-file *file* {:track-position? true})
-       test-comments
+       rct-zlocs
        first
-       test-comment-data
+       rct-data-seq
        first)
   ; {...}
 
@@ -148,61 +157,75 @@
   ;=> ";; For example, let's add two numbers.\n"
   )
 
-(defn assert-expr
+(defn is
   "Like clojure.test/is, but allows passing an explicit line number and file."
-  [form line-number file]
+  [form message line-number file]
   (let [args (rest form)
-        pred (first form)]
+        pred (first form)
+        pred1 (if (= pred `clojure.core/=) '= pred)
+        form1 (if (= (first form) `clojure.core/=)
+                (cons '= (rest form))
+                form)]
     `(let [values# (list ~@args)
            result# (apply ~pred values#)]
        (if result#
-         (clojure.test/do-report
+         (test/do-report
            {:type :pass,
-            :message nil,
-            :expected '~form,
-            :actual (cons '~pred values#)
+            :message ~message
+            :expected '~form1,
+            :actual (cons '~pred1 values#)
             :line ~line-number
             :file ~file})
-         (clojure.test/do-report
+         (test/do-report
            {:type :fail,
-            :message nil,
-            :expected '~form,
-            :actual (list '~'not (cons '~pred values#))
+            :message ~message
+            :expected '~form1,
+            :actual (list '~'not (cons '~pred1 values#))
             :line ~line-number
             :file ~file}))
        result#)))
 
-(defn build-test-assertions
-  "Return test assertion code from rich comment tests in the given file path."
-  [test-comment-data file]
-  (cons
-    `do
-    (for [{:keys [assertion-string test expected location]} test-comment-data]
-      `(clojure.test/testing ~(if (seq assertion-string)
-                                (apply str assertion-string)
-                                "")
-         ~(if expected
-            (assert-expr
-              `(= ~test ~(read-string expected))
-              (first location)
-              file)
-            test)))))
+(defn throw-bad-expectation-string
+  [{:keys [context-strings test-sexpr expectation-string location] :as data}]
+  (throw
+    (ex-info
+      (format
+        "Error reading expected return value %s on line %s for test: %s"
+        (pr-str expectation-string) (first location) test-sexpr)
+      data)))
 
-(defn attempt-find-file-for-ns [for-ns]
+(defn emit-test-form
+  [{:keys [context-strings test-sexpr expectation-string location] :as data}]
+  (let [expectation-form (try
+                           (read-string expectation-string)
+                           (catch Exception _
+                             (throw-bad-expectation-string data)))
+        form
+        (if expectation-string
+          (is `(= ~test-sexpr ~expectation-form)
+              (last context-strings)
+              (first location)
+              *file*)
+          test-sexpr)]
+    (if-some [ctx (butlast context-strings)]
+      `(test/testing ~(string/trim (apply str ctx)) ~form)
+      form)))
+
+#_(defn attempt-find-file-for-ns [for-ns]
   (-> (ns-publics for-ns)
       vals
       first
       meta
       :file))
 
-(defn run-ns-tests! [for-ns]
+#_(defn run-ns-tests! [for-ns]
   (if-let [file (attempt-find-file-for-ns for-ns)]
     (binding [*ns* for-ns
               *file* file]
       (->> (z/of-file *file* {:track-position? true})
-           test-comments
-           (map test-comment-data)
-           (map #(build-test-assertions (test-comment-data %) file))
+           rct-zlocs
+           (map rct-data-seq)
+           (map #(build-test-assertions (rct-data-seq %) file))
            (run! (fn [test-code] (eval test-code)))))
     (throw
       (ex-info
@@ -211,9 +234,21 @@
 
 
 (comment
-  (->> (z/of-file *file* {:track-position? true})
-       test-comments
-       (map test-comment-data))
+  (def one-test
+    (->> (z/of-file *file* {:track-position? true})
+         rct-zlocs
+         (mapcat rct-data-seq)
+         (map emit-test-form)
+         (run! eval)))
+
+  one-test
+  (eval (emit-test-form (assoc one-test :expectation-string "[1 2\n")))
+
+  (map emit-test-form
+       (->> (z/of-file *file* {:track-position? true})
+            rct-zlocs
+            first
+            rct-data-seq))
 
   (run-ns-tests! *ns*)
   )
