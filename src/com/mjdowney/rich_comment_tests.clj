@@ -1,7 +1,9 @@
 (ns com.mjdowney.rich-comment-tests
-  (:require [clojure.string :as string]
+  (:require [clojure.java.io :as io]
+            [clojure.string :as string]
             [com.mjdowney.rich-comment-tests.emit-tests :as tests]
-            [rewrite-clj.zip :as z]))
+            [rewrite-clj.zip :as z])
+  (:import (clojure.lang Namespace)))
 
 ;;; Some example code that I'd like to be able to run this on
 
@@ -138,9 +140,9 @@
   (->> (z/of-file *file* {:track-position? true})
        rct-zlocs
        (mapcat rct-data-seq))
-  ; [{:test (+ 1 1) :expected "2" :location [12 3]} ...]
+  ; [{:test (+ 1 1) :expected "2" :location [13 3]} ...]
 
-  ;; Select the very first test in the first test comment block (from line 12)
+  ;; Select the very first test in the first test comment block (from line 14)
   (->> (z/of-file *file* {:track-position? true})
        rct-zlocs
        first
@@ -149,48 +151,96 @@
   ; {...}
 
   (select-keys *1 [:test-sexpr :expectation-string :location])
-  ;=> {:test-sexpr '(+ 1 1) :expectation-string "2" :location [12 3]}
+  ;=> {:test-sexpr '(+ 1 1) :expectation-string "2" :location [14 3]}
 
   (-> *2 :context-strings first)
   ;=> ";; For example, let's add two numbers.\n"
   )
 
-#_(defn attempt-find-file-for-ns [for-ns]
-  (-> (ns-publics for-ns)
-      vals
-      first
-      meta
-      :file))
+(defn run-tests*
+  "Take a `rewrite-clj` zipper pointed at the root of a file and run all rich
+  comment tests.
 
-#_(defn run-ns-tests! [for-ns]
-  (if-let [file (attempt-find-file-for-ns for-ns)]
-    (binding [*ns* for-ns
-              *file* file]
-      (->> (z/of-file *file* {:track-position? true})
-           rct-zlocs
-           (map rct-data-seq)
-           (map #(build-test-assertions (rct-data-seq %) file))
-           (run! (fn [test-code] (eval test-code)))))
-    (throw
-      (ex-info
-        (str "Failed to resolve source file for namespace " for-ns)
-        {:namespace for-ns}))))
-
-(comment
-  (->> (z/of-file *file* {:track-position? true})
+  *ns* and *file* should be bound before calling this."
+  [zloc]
+  {:pre [(:position zloc)]}
+  (->> zloc
        rct-zlocs
        (mapcat rct-data-seq)
-       (map tests/emit-test-form)
-       (run! eval))
+       (run! (comp eval tests/emit-test-form))))
 
-  one-test
-  (eval (emit-test-form (assoc one-test :expectation-string "[1 2\n")))
+(defn run-file-tests!
+  "Take a file path and the namespace it corresponds to, and run tests."
+  [file ns]
+  {:pre [(string? file) (instance? Namespace ns)]}
+  (binding [*ns* ns
+            *file* file]
+    (run-tests* (z/of-file *file* {:track-position? true}))))
 
-  (map emit-test-form
-       (->> (z/of-file *file* {:track-position? true})
-            rct-zlocs
+(defn require-file-for-ns
+  "Given a Namespace, attempt to find a corresponding source file, or throw an
+  exception if this isn't possible."
+  [ns]
+  (let [nsf
+        (-> (ns-publics ns)
+            vals
             first
-            rct-data-seq))
+            meta
+            :file
+            io/file)]
+    (if (.isFile nsf)
+      (.getPath nsf)
+      (throw
+        (ex-info (str "Failed to resolve source file for ns " ns)
+                 {:ns ns})))))
 
-  (run-ns-tests! *ns*)
+(defn run-ns-tests!
+  "Take a namespace or namespace symbol, attempt to find the corresponding
+  source file, and run tests in the namespace."
+  [ns]
+  {:pre [(or (instance? Namespace ns) (symbol? ns))]}
+  (let [ns (if (symbol? ns)
+             (doto (find-ns ns)
+               (assert (str "Namespace exists for symbol: " ns)))
+             ns)]
+    (run-file-tests! (require-file-for-ns ns) ns)))
+
+
+(defmacro capture-clojure-test-out
+  "Capture any string output fom clojure.test while invoking `body`, and
+  isolate test state."
+  [& body]
+  `(let [sw# (java.io.StringWriter.)]
+     (binding [clojure.test/*test-out* sw#
+               *out* sw#
+               ; Isolate this test that we expect to fail, in case this snippet
+               ; is being run from clojure.test, so that its failure isn't
+               ; counted with other test failures.
+               clojure.test/*report-counters*
+               (ref clojure.test/*initial-report-counters*)]
+       (do ~@body)
+       (string/trim (.toString sw#)))))
+
+
+^:rct/test
+(comment
+  ; RCT to read directly as a string
+  (def form-that-fails
+    "^:rct/test
+    (comment
+      ;; When asserting impossibilities...
+      ;; The test fails
+      (+ 1 1) ;=> 3
+    )")
+
+  ; Call *run-tests* on the string, and capture any clojure.test output
+  (capture-clojure-test-out
+    (run-tests* (z/of-string form-that-fails {:track-position? true})))
+
+  ; There is output for the failed test
+  (string/starts-with? *1 "FAIL in") ;=> true
+  (string/ends-with? *2 "(not (= 2 3))") ;=> true
   )
+
+(comment ;; For example...
+  (run-ns-tests! *ns*))
