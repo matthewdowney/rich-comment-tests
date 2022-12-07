@@ -181,18 +181,19 @@
   "Given a Namespace, attempt to find a corresponding source file, or throw an
   exception if this isn't possible."
   [ns]
-  (let [nsf
-        (-> (ns-publics ns)
-            vals
-            first
-            meta
-            :file
-            io/file)]
-    (if (.isFile nsf)
-      (.getPath nsf)
-      (throw
-        (ex-info (str "Failed to resolve source file for ns " ns)
-                 {:ns ns})))))
+  ; A bit of a hack: attempt to get the source file for a namespace from the
+  ; meta data of one of its public vars
+  (or
+    (when-let [ns-file-from-metadata (->> (ns-publics ns)
+                                          vals
+                                          (keep (comp :file meta))
+                                          first)]
+      (let [nsf (io/file ns-file-from-metadata)]
+        (when (.isFile nsf)
+          (.getPath nsf))))
+    (throw
+      (ex-info (str "Failed to resolve source file for ns " ns)
+               {:ns ns}))))
 
 (defn run-ns-tests!
   "Take a namespace or namespace symbol, attempt to find the corresponding
