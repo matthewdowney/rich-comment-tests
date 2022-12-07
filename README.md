@@ -9,7 +9,7 @@ to evaluate `comment` blocks and match the result of each sexpr against
 
 [CHANGELOG](#changes) | Uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md)
 ```clojure
-io.github.matthewdowney/rich-comment-tests {:git/tag "v0.0.1" :git/sha "78124ba"}
+io.github.matthewdowney/rich-comment-tests {:git/tag "v0.0.2" :git/sha "7c673a3"}
 ```
 
 Inspired by the discussion in [hyperfiddle/rcf/issues/49](https://github.com/hyperfiddle/rcf/issues/49).
