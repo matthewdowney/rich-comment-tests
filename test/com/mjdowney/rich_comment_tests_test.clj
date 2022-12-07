@@ -1,6 +1,6 @@
 (ns com.mjdowney.rich-comment-tests-test
   (:require [clojure.test :refer :all]
-            [com.mjdowney.rich-comment-tests :refer :all]))
+            [com.mjdowney.rich-comment-tests.test-runner :as test-runner]))
 
-(deftest namespace-tests
-  (run-ns-tests! 'com.mjdowney.rich-comment-tests))
+(deftest rct-tests
+  (test-runner/run-tests-in-file-tree! :dirs #{"src"}))

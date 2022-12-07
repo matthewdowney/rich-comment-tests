@@ -1,4 +1,5 @@
 (ns com.mjdowney.rich-comment-tests
+  "RCT turns rich comment forms into tests."
   (:require [clojure.java.io :as io]
             [clojure.string :as string]
             [clojure.test :as test]
@@ -148,7 +149,7 @@
        (mapcat rct-data-seq))
   ; [{:test (+ 1 1) :expected "2" :location [13 3]} ...]
 
-  ;; Select the very first test in the first test comment block (from line 15)
+  ;; Select the very first test in the first test comment block (from line 16)
   (->> (z/of-file *file* {:track-position? true})
        rct-zlocs
        first
@@ -157,7 +158,7 @@
   ; {...}
 
   (select-keys *1 [:test-sexpr :expectation-string :location])
-  ;=> {:test-sexpr '(+ 1 1) :expectation-string "2" :location [15 3]}
+  ;=> {:test-sexpr '(+ 1 1) :expectation-string "2" :location [16 3]}
 
   (-> *2 :context-strings first)
   ;=> ";; For example, let's add two numbers.\n"
