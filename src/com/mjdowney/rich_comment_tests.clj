@@ -19,9 +19,13 @@
 
   ; This comment shouldn't be attached to anything
 
+  ; Test results can be multi-line
   (map inc
        [1 2 3])
-  ;;=> [2 3 4]
+  ;;=> [2
+  ;;    3
+  ;;    4]
+  ;; More comments can follow
 
   ; This form is run, but it's not an assertion, since the following comment
   ; doesn't start with =>
@@ -94,12 +98,6 @@
           (remove (comp empty? string/trim)))
         nodes-preceding-assertion))))
 
-(defn some1
-  "Like `clojure.core/some`, but returns the matching element, not the
-  predicate result."
-  [pred coll]
-  (reduce (fn [_ x] (when (pred x) (reduced x))) nil coll))
-
 (defn expectation-string
   "A string representing the expectation for a test expression (or nil if none).
 
@@ -113,14 +111,21 @@
     (+ 1 1)
     ;;=> 2"
   [test-sexpr-zloc]
-  (let [nodes-following-assertion (rest (iterate z/right* test-sexpr-zloc))]
-    (when-let [next-comment
+  (let [nodes-following-assertion (rest (iterate z/right* test-sexpr-zloc))
+        ; A string like ";=> _"
+        result-comment? #(re-matches #"\s*;+=>.+\n" %)]
+    (when-let [[result-first-line & rest]
                (->> nodes-following-assertion
                     (take-while z/whitespace-or-comment?)
-                    (some1 #(= (z/tag %) :comment))
-                    z/string)]
-      (when-let [[_ expected] (re-matches #"\s*;+=>\s*(.*)\n" next-comment)]
-        expected))))
+                    (map z/string)
+                    (drop-while (complement result-comment?))
+                    ; stop searching at the first double line break
+                    (take-while (complement #{"\n"}))
+                    ; strip leading ;s from comments
+                    (map #(string/replace-first % #"^\s*;+" ""))
+                    seq)]
+      ; Remove the leading => from the first line
+      (string/trim (apply str (subs result-first-line 2) rest)))))
 
 (defn rct-data-seq
   "Take an rct zloc and return a series of maps with information about
