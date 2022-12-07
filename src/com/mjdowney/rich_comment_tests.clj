@@ -1,6 +1,7 @@
 (ns com.mjdowney.rich-comment-tests
   (:require [clojure.java.io :as io]
             [clojure.string :as string]
+            [clojure.test :as test]
             [com.mjdowney.rich-comment-tests.emit-tests :as tests]
             [rewrite-clj.zip :as z])
   (:import (clojure.lang Namespace)))
@@ -147,7 +148,7 @@
        (mapcat rct-data-seq))
   ; [{:test (+ 1 1) :expected "2" :location [13 3]} ...]
 
-  ;; Select the very first test in the first test comment block (from line 14)
+  ;; Select the very first test in the first test comment block (from line 15)
   (->> (z/of-file *file* {:track-position? true})
        rct-zlocs
        first
@@ -156,23 +157,49 @@
   ; {...}
 
   (select-keys *1 [:test-sexpr :expectation-string :location])
-  ;=> {:test-sexpr '(+ 1 1) :expectation-string "2" :location [14 3]}
+  ;=> {:test-sexpr '(+ 1 1) :expectation-string "2" :location [15 3]}
 
   (-> *2 :context-strings first)
   ;=> ";; For example, let's add two numbers.\n"
   )
 
+(defn clojure-test-reporting-active? [] (some? test/*report-counters*))
+
+(defmacro with-clojure-test-reporting
+  "Run `body` with clojure.test reporting, unless it is already active."
+  [& body]
+  `(if (clojure-test-reporting-active?)
+     (do ~@body)
+     (binding [test/*report-counters* (ref test/*initial-report-counters*)]
+       (test/do-report {:type :begin-test-ns :ns *ns*})
+       (let [ret# (do ~@body)]
+         (test/do-report {:type :end-test-ns   :ns *ns*})
+         (test/do-report (assoc @test/*report-counters* :type :summary))
+         ret#))))
+
 (defn run-tests*
   "Take a `rewrite-clj` zipper pointed at the root of a file and run all rich
   comment tests.
 
+  The zipper must have be configured with {:track-position? true}.
+
   *ns* and *file* should be bound before calling this."
   [zloc]
   {:pre [(:position zloc)]}
-  (->> zloc
-       rct-zlocs
-       (mapcat rct-data-seq)
-       (run! (comp eval tests/emit-test-form))))
+  (with-clojure-test-reporting
+    (doseq [rct-zloc (rct-zlocs zloc)]
+      (test/inc-report-counter :test) ; treat each rct as a separate 'test'
+      (try
+        ; Build and eval test assertions for each test-sexpr in the rct
+        (run! (comp eval tests/emit-test-form) (rct-data-seq rct-zloc))
+
+        ; Copy clojure.test behavior in case of uncaught exception
+        (catch Throwable e
+          (test/do-report
+            {:type :error
+             :message "Uncaught exception, not in assertion."
+             :expected nil
+             :actual e}))))))
 
 (defn run-file-tests!
   "Take a file path and the namespace it corresponds to, and run tests."
@@ -211,22 +238,19 @@
              ns)]
     (run-file-tests! (require-file-for-ns ns) ns)))
 
-
 (defmacro capture-clojure-test-out
   "Capture any string output fom clojure.test while invoking `body`, and
   isolate test state."
   [& body]
   `(let [sw# (java.io.StringWriter.)]
-     (binding [clojure.test/*test-out* sw#
+     (binding [test/*test-out* sw#
                *out* sw#
                ; Isolate this test that we expect to fail, in case this snippet
                ; is being run from clojure.test, so that its failure isn't
                ; counted with other test failures.
-               clojure.test/*report-counters*
-               (ref clojure.test/*initial-report-counters*)]
+               test/*report-counters* (ref test/*initial-report-counters*)]
        (do ~@body)
        (string/trim (.toString sw#)))))
-
 
 ^:rct/test
 (comment
@@ -239,13 +263,20 @@
       (+ 1 1) ;=> 3
     )")
 
-  ; Call *run-tests* on the string, and capture any clojure.test output
   (capture-clojure-test-out
     (run-tests* (z/of-string form-that-fails {:track-position? true})))
 
-  ; There is output for the failed test
-  (string/starts-with? *1 "FAIL in") ;=> true
-  (string/ends-with? *2 "(not (= 2 3))") ;=> true
+  ; The test fails and outputs a failure report with the line number, context
+  ; strings, etc.
+  (string/includes?
+    *1
+    "(rich_comment_tests.clj:5)
+;; When asserting impossibilities...
+;; The test fails
+
+expected: (= (+ 1 1) 3)
+  actual: (not (= 2 3))")
+  ;=> true
   )
 
 (comment ;; For example...
