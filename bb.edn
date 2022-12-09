@@ -1,0 +1,24 @@
+{:tasks
+ {test {:doc "run unit tests"
+        :task (clojure "-X:test1")}
+
+  coords {:doc "update the dependency coordinates in README.md"
+          :requires ([clojure.string :refer [split split-lines replace]]
+                     [babashka.process :refer [sh shell]])
+          :task (let [tag (->> (sh "git" "tag") :out split-lines peek)
+                      sha (-> (sh "bash -c 'git log | head -1'")
+                            :out
+                            (split (re-pattern " "))
+                            second
+                            (subs 0 7))
+                      coords (str "{" (pr-str :git/tag tag :git/sha sha) "}")
+                      dep "io.github.matthewdowney/rich-comment-tests"]
+
+                  (spit "README.md"
+                    (-> (slurp "README.md")
+                        (replace
+                          (re-pattern (format "(?s)%s \\{:git/tag \"[^\\}]+\\}" dep))
+                          (format "%s %s" dep coords))))
+
+                  (shell "git diff README.md"))}
+  }}
