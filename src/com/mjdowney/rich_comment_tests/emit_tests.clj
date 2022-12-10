@@ -75,7 +75,7 @@
         fname (.getName (io/file *file*))
         test-form (list '= test-sexpr expectation-form)]
     `(let [form-result# ~(try-bind-repl-vars test-sexpr line-number *file*)
-           test-result# (= form-result# ~expectation-form)]
+           test-result# (= form-result# '~expectation-form)]
 
        (if test-result#
          (test/do-report

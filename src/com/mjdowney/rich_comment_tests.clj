@@ -42,6 +42,9 @@
   ; doesn't start with =>
   (apply assoc {} (repeatedly 2 rand))
   ; {0.10999946790750348 0.4352718677404722}
+
+  (map inc [1 2 3])
+  ;; => (2 3 4)
   )
 
 ;;; End example code
@@ -184,7 +187,7 @@
        (drop 3)
        first
        :expectation-type)
-  ;=> '=>>
+  ;=> =>>
   )
 
 (defn clojure-test-reporting-active? [] (some? test/*report-counters*))
