@@ -124,8 +124,8 @@
     ;;=> 2"
   [test-sexpr-zloc]
   (let [nodes-following-assertion (rest (iterate z/right* test-sexpr-zloc))
-        ; A string like ";=> _" or ";=>> _"
-        result-comment? #(re-matches #"\s*;+=>{1,2}.+\n" %)]
+        ; A string like ";=> _" or ";=>> _" or ";; => _"
+        result-comment? #(re-matches #"\s*;+\s?=>{1,2}.+\n" %)]
     (when-let [[fst-line & rest]
                (->> nodes-following-assertion
                     (take-while z/whitespace-or-comment?)
@@ -134,7 +134,7 @@
                     ; stop searching at the first double line break
                     (take-while (complement #{"\n"}))
                     ; strip leading ;s from comments
-                    (map #(string/replace-first % #"^\s*;+" ""))
+                    (map #(string/replace-first % #"^\s*;+\s?" ""))
                     seq)]
       (let [[_ type' fst-line] (re-matches #"(?s)(=>{1,2})(.+)" fst-line)]
         [(symbol type')
