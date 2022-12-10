@@ -20,6 +20,10 @@
   (let [foo inc]
     (= (foo 1) (inc 1))) ;=> true
 
+  ;; Allows space between comment and arrow
+  (+ 1 1)
+  ;; => 2
+
   ; This comment shouldn't be attached to anything
 
   ; Test results can be multi-line
@@ -121,7 +125,10 @@
     (+ 1 1) ;=> 2
 
     (+ 1 1)
-    ;;=> 2"
+    ;;=> 2
+
+    (+ 1 1)
+    ;; => 2"
   [test-sexpr-zloc]
   (let [nodes-following-assertion (rest (iterate z/right* test-sexpr-zloc))
         ; A string like ";=> _" or ";=>> _" or ";; => _"
@@ -176,12 +183,12 @@
   (-> *1 :context-strings first)
   ;=> ";; For example, let's add two numbers.\n"
 
-  ;; Select the fourth test in the first comment block, which uses a different
+  ;; Select the fifth test in the first comment block, which uses a different
   ;; expectation type.
   (->> (z/of-file *file* {:track-position? true})
        rct-zlocs
        (mapcat rct-data-seq)
-       (drop 3)
+       (drop 4)
        first
        :expectation-type)
   ;=> '=>>
