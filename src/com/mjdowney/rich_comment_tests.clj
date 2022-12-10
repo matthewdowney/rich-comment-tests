@@ -29,6 +29,14 @@
   ;;    4]
   ;; More comments can follow
 
+  ; Instead of asserting strict equality, you can use ';=>>' to enable pattern
+  ; matching with https://github.com/HealthSamurai/matcho
+  (let [this-file (slurp *file*)]
+    {:contents this-file
+     :characters (count this-file)})
+  ;=>> {:contents string?
+  ;     :characters int?}
+
   ; This form is run, but it's not an assertion, since the following comment
   ; doesn't start with =>
   (apply assoc {} (repeatedly 2 rand))
@@ -100,8 +108,9 @@
           (remove (comp empty? string/trim)))
         nodes-preceding-assertion))))
 
-(defn expectation-string
-  "A string representing the expectation for a test expression (or nil if none).
+(defn expectation-data
+  "Parse a string representing the expectation for a test expression and an
+  expression type, returning a vector of `[type str]` (or nil if none).
 
   The expected result is designated by a =>-prefixed comment, either directly
   after or on a line following the test expression.
@@ -114,9 +123,9 @@
     ;;=> 2"
   [test-sexpr-zloc]
   (let [nodes-following-assertion (rest (iterate z/right* test-sexpr-zloc))
-        ; A string like ";=> _"
-        result-comment? #(re-matches #"\s*;+=>.+\n" %)]
-    (when-let [[result-first-line & rest]
+        ; A string like ";=> _" or ";=>> _"
+        result-comment? #(re-matches #"\s*;+=>{1,2}.+\n" %)]
+    (when-let [[fst-line & rest]
                (->> nodes-following-assertion
                     (take-while z/whitespace-or-comment?)
                     (map z/string)
@@ -126,17 +135,20 @@
                     ; strip leading ;s from comments
                     (map #(string/replace-first % #"^\s*;+" ""))
                     seq)]
-      ; Remove the leading => from the first line
-      (string/trim (apply str (subs result-first-line 2) rest)))))
+      (let [[_ type' fst-line] (re-matches #"(?s)(=>{1,2})(.+)" fst-line)]
+        [(symbol type')
+         (string/trim (apply str fst-line rest))]))))
 
 (defn rct-data-seq
   "Take an rct zloc and return a series of maps with information about
   tests to run."
   [rct-zloc]
-  (for [zloc (test-sexpr-zlocs rct-zloc)]
+  (for [zloc (test-sexpr-zlocs rct-zloc)
+        :let [[et es] (expectation-data zloc)]]
     {:context-strings (context-strings zloc)
      :test-sexpr (z/sexpr zloc)
-     :expectation-string (expectation-string zloc)
+     :expectation-string es
+     :expectation-type et
      :location (z/position zloc)}))
 
 ^:rct/test
@@ -162,6 +174,16 @@
 
   (-> *2 :context-strings first)
   ;=> ";; For example, let's add two numbers.\n"
+
+  ;; Select the fourth test in the first comment block, which uses a different
+  ;; expectation type.
+  (->> (z/of-file *file* {:track-position? true})
+       rct-zlocs
+       (mapcat rct-data-seq)
+       (drop 3)
+       first
+       :expectation-type)
+  ;=> '=>>
   )
 
 (defn clojure-test-reporting-active? [] (some? test/*report-counters*))
