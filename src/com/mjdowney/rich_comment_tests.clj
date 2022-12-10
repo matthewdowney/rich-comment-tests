@@ -4,6 +4,7 @@
             [clojure.string :as string]
             [clojure.test :as test]
             [com.mjdowney.rich-comment-tests.emit-tests :as tests]
+            [matcho.core :as m]
             [rewrite-clj.zip :as z])
   (:import (clojure.lang Namespace)))
 
@@ -161,18 +162,18 @@
        (mapcat rct-data-seq))
   ; [{:test (+ 1 1) :expected "2" :location [13 3]} ...]
 
-  ;; Select the very first test in the first test comment block (from line 16)
+  ;; Select the very first test in the first test comment block
   (->> (z/of-file *file* {:track-position? true})
        rct-zlocs
        first
        rct-data-seq
        first)
-  ; {...}
+  ;=>> {:test-sexpr '(+ 1 1)
+  ;     :expectation-string "2"
+  ;     :expectation-type '=>
+  ;     :location [int? int?]} ; <- these are line and column numbers
 
-  (select-keys *1 [:test-sexpr :expectation-string :location])
-  ;=> {:test-sexpr '(+ 1 1) :expectation-string "2" :location [16 3]}
-
-  (-> *2 :context-strings first)
+  (-> *1 :context-strings first)
   ;=> ";; For example, let's add two numbers.\n"
 
   ;; Select the fourth test in the first comment block, which uses a different
@@ -300,6 +301,29 @@
 expected: (= (+ 1 1) 3)
   actual: (not (= 2 3))")
   ;=> true
+  )
+
+^:rct/test
+(comment
+  (def matcho-assert-that-fails
+    "^:rct/test
+    (comment
+      ; Pattern match the types of the map values
+      {:status 200 :body \"foo\"}
+      ;=>> {:status int?
+      ;     :body   int?}
+    )")
+
+  (capture-clojure-test-out
+    (run-tests* (z/of-string matcho-assert-that-fails {:track-position? true})))
+
+  (string/includes? *1 "(rich_comment_tests.clj:4)") ;=> true
+  (string/includes? *2 "Matcho pattern mismatch:") ;=> true
+
+  ;; Same assertion, but using matcho itself
+  (capture-clojure-test-out
+    (run-tests* (z/of-string matcho-assert-that-fails {:track-position? true})))
+  ;=>> #".*FAIL in \(.*\) \(rich_comment_tests.clj:4\).*"
   )
 
 (comment ;; For example...
