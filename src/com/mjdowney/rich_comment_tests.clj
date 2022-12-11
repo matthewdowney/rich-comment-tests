@@ -4,7 +4,6 @@
             [clojure.string :as string]
             [clojure.test :as test]
             [com.mjdowney.rich-comment-tests.emit-tests :as tests]
-            [matcho.core :as m]
             [rewrite-clj.zip :as z])
   (:import (clojure.lang Namespace)))
 
@@ -24,31 +23,31 @@
   (+ 1 1)
   ;; => 2
 
-  ; This comment shouldn't be attached to anything
+  ; This comment isn't attached to anything
 
   ; Test results can be multi-line
   (map inc
        [1 2 3])
-  ;;=> [2
-  ;;    3
-  ;;    4]
+  ;; => (2
+  ;;     3
+  ;;     4)
   ;; More comments can follow
 
-  ; Instead of asserting strict equality, you can use ';=>>' to enable pattern
-  ; matching with https://github.com/HealthSamurai/matcho
+  ; This form is run, but it's not an assertion bc there is no => or =>>
+  (apply assoc {} (repeatedly 2 rand))
+  ; {0.10999946790750348 0.4352718677404722}
+
+  ; Use use '=>>' for pattern matching with https://github.com/HealthSamurai/matcho
   (let [this-file (slurp *file*)]
     {:contents this-file
      :characters (count this-file)})
   ;=>> {:contents string?
   ;     :characters int?}
 
-  ; This form is run, but it's not an assertion, since the following comment
-  ; doesn't start with =>
-  (apply assoc {} (repeatedly 2 rand))
-  ; {0.10999946790750348 0.4352718677404722}
-
-  (map inc [1 2 3])
-  ;; => (2 3 4)
+  ; '=>>' also allows ellipses before ), }, or ] to indicate more elements
+  (range 10) ;;=>> [0 1 2 ...]
+  (range 10) ;;=>> '(0 1 2 ...)
+  (apply assoc {} (range 20)) ;=>> {0 1, 2 3 ...}
   )
 
 ;;; End example code
@@ -170,7 +169,7 @@
   (->> (z/of-file *file* {:track-position? true})
        rct-zlocs
        (mapcat rct-data-seq))
-  ; [{:test (+ 1 1) :expected "2" :location [13 3]} ...]
+  ;=>> [{:test-sexpr '(+ 1 1) :expectation-string "2" ...} ...]
 
   ;; Select the very first test in the first test comment block
   (->> (z/of-file *file* {:track-position? true})
@@ -186,12 +185,12 @@
   (-> *1 :context-strings first)
   ;=> ";; For example, let's add two numbers.\n"
 
-  ;; Select the fifth test in the first comment block, which uses a different
+  ;; Select the sixth test in the first comment block, which uses a different
   ;; expectation type.
   (->> (z/of-file *file* {:track-position? true})
        rct-zlocs
        (mapcat rct-data-seq)
-       (drop 4)
+       (drop 5)
        first
        :expectation-type)
   ;=> =>>

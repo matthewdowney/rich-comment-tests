@@ -3,7 +3,8 @@
   (:require [clojure.java.io :as io]
             [clojure.string :as string]
             [clojure.test :as test]
-            [matcho.core :as m]))
+            [matcho.core :as m]
+            [rewrite-clj.zip :as z]))
 
 (defn throw-evaluation-error [test-form line-number file cause]
   (throw
@@ -43,21 +44,75 @@
   (fn [rct-data expectation-form]
     (:expectation-type rct-data)))
 
+(defmulti read-expectation-form
+  "Return a read-string'd expectation form from an expectation string."
+  (fn [rct-data]
+    (:expectation-type rct-data)))
+
 (defn emit-test-form
   "Take parsed rct data and emit test code compatible with clojure.test."
-  [{:keys [context-strings test-sexpr expectation-string expectation-type location]
-    :as data}]
-  (let [expectation-form (when expectation-string
-                           (try
-                             (read-string expectation-string)
-                             (catch Exception _
-                               (throw-bad-expectation-string data))))
+  [{:keys [context-strings test-sexpr location] :as data}]
+  (let [expectation-form (read-expectation-form data)
         form (if expectation-form
                (emit-assertion data expectation-form)
                (try-bind-repl-vars test-sexpr (first location) *file*))]
     (if-some [ctx (butlast context-strings)]
       `(test/testing ~(string/trim (apply str ctx)) ~form)
       form)))
+
+; By default, just try to read-string it, if present
+(defmethod read-expectation-form :default
+  [{:keys [expectation-string] :as data}]
+  (when expectation-string
+    (try
+      (read-string expectation-string)
+      (catch Exception _
+        (throw-bad-expectation-string data)))))
+
+(defn elide-ellipses-in-expectation-string
+  "Allow writing \"...\" before end brackets / parens in maps, vectors, and
+  lists.
+
+  Take a string which includes such ellipses and remove them."
+  [expectation-string]
+  (-> expectation-string
+      z/of-string
+      (z/postwalk
+        ; Select all nodes which are maps / vectors / lists which end with a
+        ; literal `...`
+        (fn map-or-vector-with-ellipses? [zloc]
+          (and
+            (or (z/map? zloc) (z/vector? zloc) (z/list? zloc))
+            (= (-> zloc z/down z/rightmost z/string) "...")))
+        ; Remove the rightmost item of the collection, which is the `...`
+        (fn remove-ellipses [zloc]
+          (-> zloc z/down z/rightmost z/remove z/up)))
+      z/string))
+
+^:rct/test
+(comment
+  ;; E.g. updating this expectation string to omit the ellipses
+  (elide-ellipses-in-expectation-string
+    "[{:foo :bar
+       :bar \"{:this :is :a :string ...}\" ; inside a str, so no removal
+       :baz {:a :b
+             :c [{:d :e ...} :f ...]}
+       :list (1 2 3 ...)}
+      ...]")
+  ;=> "[{:foo :bar
+  ;      :bar \"{:this :is :a :string ...}\" ; inside a str, so no removal
+  ;      :baz {:a :b
+  ;            :c [{:d :e} :f]}
+  ;      :list (1 2 3)}]"
+  )
+
+; In matcho strings, allow ellipses
+(defmethod read-expectation-form '=>>
+  [data]
+  (-> data ; update the expectation string then run default read logic
+      (update :expectation-string elide-ellipses-in-expectation-string)
+      (dissoc :expectation-type)
+      read-expectation-form))
 
 (defmethod emit-assertion :default
   [{:keys [expectation-type location] :as data} expectation-form]
