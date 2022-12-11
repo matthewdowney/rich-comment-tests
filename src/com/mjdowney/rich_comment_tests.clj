@@ -335,5 +335,31 @@ expected: (= (+ 1 1) 3)
   ;=>> #".*FAIL in \(.*\) \(rich_comment_tests.clj:4\).*"
   )
 
+;; Demo some kinds of test assertions
+^:rct/test
+(comment
+  ;; Literal assertions with =>
+  (range 3) ;=> (0 1 2)
+  (+ 5 5) ;; => 10
+  (System/getProperty "java.version.date") ;=> "2022-09-20"
+
+
+  ;; Pattern matching assertions with =>>
+  (range 3) ;=>> '(0 1 ...)
+  (+ 5 5) ;=>> int?
+
+  (into {} (System/getProperties))
+  ;=>> {"java.version.date" #"\d{4}-\d{2}-\d{2}"}
+
+  (def response {:status 200 :body "ok"})
+  response
+  ;=>> {:status #(< % 300)
+  ;     :body   not-empty}
+
+  ;; Or with spec
+  (require '[clojure.spec.alpha :as s])
+  (into {} (System/getProperties)) ;=>> (s/map-of string? string?)
+  )
+
 (comment ;; For example...
   (run-ns-tests! *ns*))
