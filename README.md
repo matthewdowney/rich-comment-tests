@@ -60,9 +60,8 @@ test dependency, but none of this code need be packaged with production builds.
 
 RCT supports two kinds of assertions:
 - `=>` asserts literal equality
-- `=>>` asserts a [matcho](matcho) pattern (plus [ellipses](i1))
-
-[matcho]: https://github.com/HealthSamurai/matcho
+- `=>>` asserts a [matcho](https://github.com/HealthSamurai/matcho) pattern 
+  (plus [ellipses](https://github.com/matthewdowney/rich-comment-tests/issues/1))
 
 ```clojure 
 
@@ -136,16 +135,10 @@ This is what happens when you run this project with:
 
 ## Changes
 v0.0.3
-- [@lilactown](l) Automatically quote result when used with => [#5](i5)
-- [@lilactown](l) Allow whitespace between semicolon and arrow (;; =>) [#3](i3)
-- Support matcho assertions with `;=>>` [#2](i2)
-- Allow expectation string ellipses like ;=>> {:a :b ...} [#1](i1)
-
-[l]: https://github.com/lilactown
-[i1]: https://github.com/matthewdowney/rich-comment-tests/issues/1
-[i2]: https://github.com/matthewdowney/rich-comment-tests/issues/2
-[i3]: https://github.com/matthewdowney/rich-comment-tests/issues/3
-[i5]: https://github.com/matthewdowney/rich-comment-tests/issues/5
+- (@lilactown) Automatically quote result when used with => [#5](https://github.com/matthewdowney/rich-comment-tests/issues/5)
+- (@lilactown) Allow whitespace between semicolon and arrow (;; =>) [#3](https://github.com/matthewdowney/rich-comment-tests/issues/3)
+- Support matcho assertions with `;=>>` [#2](https://github.com/matthewdowney/rich-comment-tests/issues/2)
+- Allow expectation string ellipses like ;=>> {:a :b ...} [#1](https://github.com/matthewdowney/rich-comment-tests/issues/1)
 
 v0.0.2
 - Add integration with `clojure.test` reporting + way to run RCT alongside it
