@@ -341,15 +341,14 @@ expected: (= (+ 1 1) 3)
   ;; Literal assertions with =>
   (range 3) ;=> (0 1 2)
   (+ 5 5) ;; => 10
-  (System/getProperty "java.version.date") ;=> "2022-09-20"
+  ; (System/getProperty "java.version.date") ;=> "2022-09-20"
 
 
   ;; Pattern matching assertions with =>>
   (range 3) ;=>> '(0 1 ...)
   (+ 5 5) ;=>> int?
 
-  (into {} (System/getProperties))
-  ;=>> {"java.version.date" #"\d{4}-\d{2}-\d{2}"}
+  ; (into {} (System/getProperties)) ;=>> {"java.version.date" #"\d{4}-\d{2}-\d{2}"}
 
   (def response {:status 200 :body "ok"})
   response
