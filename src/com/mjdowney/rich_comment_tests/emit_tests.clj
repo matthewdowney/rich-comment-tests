@@ -21,11 +21,12 @@
   `(let [form-result#
          (try ~form
               (catch Exception e#
-                (set! *e e#)
+                (when (thread-bound? #'*e) (set! *e e#))
                 (throw-evaluation-error '~form ~line-number ~file e#)))]
-     (set! *3 *2)
-     (set! *2 *1)
-     (set! *1 form-result#)))
+     (when (thread-bound? #'*3) (set! *3 *2))
+     (when (thread-bound? #'*2) (set! *2 *1))
+     (when (thread-bound? #'*1) (set! *1 form-result#))
+     form-result#))
 
 ;; Add color to the exception if the supplied expectation string is malformed
 ;; E.g. in the case of ;=> "Oops, the quotes aren't balanced...

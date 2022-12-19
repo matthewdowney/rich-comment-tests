@@ -311,7 +311,8 @@
             {:type :error
              :message "Uncaught exception, not in assertion."
              :expected nil
-             :actual e}))))))
+             :actual e}))))
+    @test/*report-counters*))
 
 (defn run-file-tests!
   "Take a file path and the namespace it corresponds to, and run tests."
@@ -360,7 +361,8 @@
                ; Isolate this test that we expect to fail, in case this snippet
                ; is being run from clojure.test, so that its failure isn't
                ; counted with other test failures.
-               test/*report-counters* (ref test/*initial-report-counters*)]
+               test/*report-counters* (#?(:bb atom :clj ref)
+                                        test/*initial-report-counters*)]
        (do ~@body)
        (string/trim (.toString sw#)))))
 

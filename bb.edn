@@ -1,24 +1,34 @@
-{:tasks
- {test {:doc "run unit tests"
-        :task (clojure "-X:test")}
+{:deps  {io.github.matthewdowney/rich-comment-tests {:local/root "."}}
+ :paths ["bb"]
+ :tasks
+ {test-bb  {:doc  "run tests for Babashka support"
+            :task test-rct-with-bb/main}
+  test-clj {:doc  "run clj unit tests"
+            :task (clojure "-X:test1")}
+  test     {:doc  "run all tests"
+            :task (do
+                    (println "Running Babashka tests...")
+                    (run 'test-bb)
 
-  coords {:doc "update the dependency coordinates in README.md"
-          :requires ([clojure.string :refer [split split-lines replace]]
-                     [babashka.process :refer [sh shell]])
-          :task (let [tag (->> (sh "git" "tag") :out split-lines peek)
-                      sha (-> (sh "bash -c 'git log | head -1'")
-                            :out
-                            (split (re-pattern " "))
-                            second
-                            (subs 0 7))
-                      coords (str "{" (pr-str :git/tag tag :git/sha sha) "}")
-                      dep "io.github.matthewdowney/rich-comment-tests"]
+                    (println "Running CLJ tests...")
+                    (run 'test-clj))}
 
-                  (spit "README.md"
-                    (-> (slurp "README.md")
-                        (replace
-                          (re-pattern (format "(?s)%s \\{:git/tag \"[^\\}]+\\}" dep))
-                          (format "%s %s" dep coords))))
+  coords   {:doc      "update the dependency coordinates in README.md"
+            :requires ([clojure.string :refer [split split-lines replace]]
+                       [babashka.process :refer [sh shell]])
+            :task     (let [tag (->> (sh "git" "tag") :out split-lines peek)
+                            sha (-> (sh "bash -c 'git log | head -1'")
+                                  :out
+                                  (split (re-pattern " "))
+                                  second
+                                  (subs 0 7))
+                            coords (str "{" (pr-str :git/tag tag :git/sha sha) "}")
+                            dep "io.github.matthewdowney/rich-comment-tests"]
 
-                  (shell "git diff README.md"))}
-  }}
+                        (spit "README.md"
+                          (-> (slurp "README.md")
+                            (replace
+                              (re-pattern (format "(?s)%s \\{:git/tag \"[^\\}]+\\}" dep))
+                              (format "%s %s" dep coords))))
+
+                        (shell "git diff README.md"))}}}
