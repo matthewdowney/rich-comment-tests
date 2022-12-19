@@ -280,7 +280,9 @@
   [& body]
   `(if (clojure-test-reporting-active?)
      (do ~@body)
-     (binding [test/*report-counters* (ref test/*initial-report-counters*)]
+     ; bb version of clojure.test uses atoms to store this state
+     (binding [test/*report-counters* (#?(:bb atom :clj ref)
+                                        test/*initial-report-counters*)]
        (test/do-report {:type :begin-test-ns :ns *ns*})
        (let [ret# (do ~@body)]
          (test/do-report {:type :end-test-ns   :ns *ns*})
@@ -380,7 +382,7 @@
   ; strings, etc.
   (string/includes?
     *1
-    "(rich_comment_tests.clj:5)
+    "(rich_comment_tests.cljc:5)
 ;; When asserting impossibilities...
 ;; The test fails
 
@@ -403,13 +405,13 @@ expected: (= (+ 1 1) 3)
   (capture-clojure-test-out
     (run-tests* (z/of-string matcho-assert-that-fails {:track-position? true})))
 
-  (string/includes? *1 "(rich_comment_tests.clj:4)") ;=> true
+  (string/includes? *1 "(rich_comment_tests.cljc:4)") ;=> true
   (string/includes? *2 "Matcho pattern mismatch:") ;=> true
 
   ;; Same assertion, but using matcho itself
   (capture-clojure-test-out
     (run-tests* (z/of-string matcho-assert-that-fails {:track-position? true})))
-  ;=>> #".*FAIL in \(.*\) \(rich_comment_tests.clj:4\).*"
+  ;=>> #".*FAIL in \(.*\) \(rich_comment_tests.cljc:4\).*"
   )
 
 ;; Demo some kinds of test assertions
