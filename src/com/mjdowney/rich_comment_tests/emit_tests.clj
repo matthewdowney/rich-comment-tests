@@ -114,11 +114,14 @@
       (dissoc :expectation-type)
       read-expectation-form))
 
+; Workaround for Babashka where the *file* is not available from test code
+(defmacro -*file* [] `(if *file* (.getName (io/file *file*)) "unknown_file"))
+
 (defmethod emit-assertion :default
-  [{:keys [expectation-type location] :as data} expectation-form]
+  [{:keys [expectation-type location] :as data} _expectation-form]
   (let [err (format "Unknown expectation string type ;%s at %s:%s"
                     expectation-type
-                    (.getName (io/file *file*))
+                    (-*file*)
                     (first location))]
     (throw (ex-info err data))))
 
@@ -127,20 +130,21 @@
   [{:keys [context-strings test-sexpr location]} expectation-form]
   (let [message (last context-strings)
         line-number (first location)
-        fname (.getName (io/file *file*))
+        fname (-*file*)
         test-form (list '= test-sexpr expectation-form)]
     `(let [form-result# ~(try-bind-repl-vars test-sexpr line-number *file*)
            test-result# (= form-result# '~expectation-form)]
 
        (if test-result#
-         (test/do-report
+         ; n.b. this needs to be fully qualified for babashka
+         (clojure.test/do-report
            {:type :pass,
             :message ~message
             :expected '~test-form
             :actual '~test-form
             :line ~line-number
             :file ~fname})
-         (test/do-report
+         (clojure.test/do-report
            {:type     :fail,
             :message  ~message
             :expected '~test-form
@@ -158,9 +162,9 @@
   [{:keys [context-strings test-sexpr location]} expectation-form]
   (let [message (last context-strings)
         line (first location)
-        fname (.getName (io/file *file*))]
+        fname (-*file*)]
     (?enclose
-      (when message `(test/testing ~(str \newline message)))
+      (when message `(clojure.test/testing ~(str \newline message)))
       `(let [form-result# ~(try-bind-repl-vars test-sexpr line *file*)
              ; Rebind do-report to include the file name and line number, since
              ; matcho doesn't expose a way for us to set these
