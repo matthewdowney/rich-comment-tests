@@ -24,10 +24,11 @@
 
   (testing "reflective tests"
     (testing "when evaluating a :rct/test comment form in a .bb file"
-      (binding [test/*report-counters* (atom test/*initial-report-counters*)]
-        (is (= (rct/run-ns-tests! 'test-rct-with-bb)
-               {:test 1 :pass 4 :fail 0 :error 0})
-            "the tests pass"))))
+      (let [ns-tests-result
+            (binding [test/*report-counters* (atom test/*initial-report-counters*)]
+              (rct/run-ns-tests! 'test-rct-with-bb))]
+        (is (= ns-tests-result {:test 1 :pass 4 :fail 0 :error 0})
+            "tests passing"))))
 
   (testing "compatible subset of matcho assertions"
     (t/passes? "(+ 5 5) ;;=>> int?")
@@ -48,6 +49,8 @@
   ;; Literal assertions with =>
   (range 3) ;=> (0 1 2)
   (+ 5 5) ;; => 10
+
+  (+ 1 1) ;=> 3
 
   ;; Pattern matching assertions with =>>
   (+ 5 5) ;=>> int?

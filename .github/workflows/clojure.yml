@@ -20,5 +20,8 @@ jobs:
       - uses: DeLaGuardo/setup-clojure@10.1
         with:
           cli: 1.11.1.1155
-      - name: Run tests
+          bb: 1.0.168
+      - name: Run Babashka tests
+        run: bb test-bb
+      - name: Run Clojure tests
         run: clojure -X:test
