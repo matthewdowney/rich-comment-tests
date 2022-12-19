@@ -50,8 +50,6 @@
   (range 3) ;=> (0 1 2)
   (+ 5 5) ;; => 10
 
-  (+ 1 1) ;=> 3
-
   ;; Pattern matching assertions with =>>
   (+ 5 5) ;=>> int?
   (def response {:status 200 :body "ok"})
