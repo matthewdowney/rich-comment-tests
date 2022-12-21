@@ -3,14 +3,15 @@
     [clojure.string :as str]
     [clojure.test :refer [is] :as test]
     [com.mjdowney.rich-comment-tests :as rct]
-    [com.mjdowney.rich-comment-tests.emit-tests :as tests]))
+    [com.mjdowney.rich-comment-tests.emit-tests :as tests]
+    [rewrite-clj.zip :as z]))
 
 (defn rct
   "Stick a single RCT assertion string into a comment block and run it,
   returning any test output."
   [s]
   (let [rct-data
-        (->> (rewrite-clj.zip/of-string
+        (->> (z/of-string
                (str "^:rct/test\n (comment\n" s "\n)")
                {:track-position? true})
              rct/rct-zlocs
