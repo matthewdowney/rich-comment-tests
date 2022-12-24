@@ -103,35 +103,56 @@
   [s]
   (re-matches #"\s*;+\s?=>{1,2}.+\n" s))
 
-(defn remove-form-expstr-pairs [[a b & _ :as xs]]
-  (lazy-seq
-    (when (seq xs)
-      (if (and a b ; is a pair
-               (z/sexpr-able? b) ; starting with a form
-               (= (z/tag a) :comment) ; followed by expectation string comment
-               (result-comment? (z/string a)))
-        (remove-form-expstr-pairs (drop 2 xs))
-        (cons a (remove-form-expstr-pairs (rest xs)))))))
+(defn pairs
+  "Transducer from [a b c ... z] => [[a b] [b c] ... [z nil]]."
+  []
+  (fn [rf]
+    (let [left (volatile! nil)]
+      (fn
+        ([] rf)
+        ([xs x]
+         (let [lft @left]
+           (vreset! left x)
+           (if lft
+             (rf xs [lft x])
+             xs)))
+        ([xs]
+         (rf
+           (if-let [lft @left]
+             (unreduced (rf xs [lft nil]))
+             xs)))))))
+
+(defn rsequence
+  "Like `(reverse (sequence xform coll))`."
+  [xform coll]
+  (transduce xform (completing #(cons %2 %1)) (list) coll))
 
 (defn context-strings
   "A series of string comments preceding the test sexpr."
   [test-sexpr-zloc]
   (let [nodes-preceding-assertion (rest (iterate z/left* test-sexpr-zloc))]
-    (->> nodes-preceding-assertion
-         ; take up to the next completely blank line
-         (take-while (complement z/linebreak?))
+    (letfn [(form-expstr-pair? [[a b]]
+              (and a b ; is a pair
+                   (z/sexpr-able? b) ; starting with a form
+                   (= (z/tag a) :comment) ; then an expectation string comment
+                   (result-comment? (z/string a))))]
+      (rsequence
+        (comp
+          ; take up to the next completely blank line, ignoring nodes that are
+          ; only whitespace
+          (take-while (complement z/linebreak?))
+          (remove z/whitespace?)
 
-         ; drop any form + expectation string comment pairs
-         (remove z/whitespace?)
-         remove-form-expstr-pairs
+          ; drop any form + expectation string comment pairs
+          (pairs)
+          (remove form-expstr-pair?)
+          (map first)
 
-         ; take all other comments and remove empties
-         (filter z/whitespace-or-comment?)
-         (map z/string)
-         (remove (comp empty? string/trim))
-
-         ; finally, put them back in top-to-bottom order
-         reverse)))
+          ; take all other comments and remove empties
+          (filter z/whitespace-or-comment?)
+          (map z/string)
+          (remove (comp empty? string/trim)))
+        nodes-preceding-assertion))))
 
 (defn expectation-data
   "Parse a string representing the expectation for a test expression and an

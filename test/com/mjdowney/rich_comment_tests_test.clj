@@ -21,13 +21,10 @@
 (deftest context-strings-test
   (m/assert
     '{(* 0 0) ""
-
       (+ 1 1) ";; Test for\n;; addition"
       (+ 2 2) ";; Test for\n;; addition"
-
       (* 1 1) ""
       (* 2 3) ""
-
       (* 2 2) ";; Squares\n;; and such"
       (* 3 3) ";; Squares\n;; and such\n; 3 squared"}
     (ctx-strings
