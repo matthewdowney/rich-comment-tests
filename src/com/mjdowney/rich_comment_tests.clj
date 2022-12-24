@@ -101,7 +101,7 @@
 (defn result-comment?
   "A string like \";=> _\" or \";=>> _\" or \";; => _\""
   [s]
-  (re-matches #"\s*;+\s?=>{1,2}.+\n" s))
+  (re-matches #"\s*;+\s?=>{1,2}.*\n" s))
 
 (defn pairs
   "Transducer from [a b c ... z] => [[a b] [b c] ... [z nil]]."
@@ -154,6 +154,46 @@
           (remove (comp empty? string/trim)))
         nodes-preceding-assertion))))
 
+(defn advance [zloc & {:keys [to through] :as ops}]
+  {:pre [to through]}
+  (let [zloc (z/right* zloc)]
+    (cond
+      (to zloc) zloc
+      (through zloc) (recur zloc ops)
+      :else nil)))
+
+(defn tag? [x] #(= (z/tag %) x))
+
+(defn ?result-comment-zloc [z]
+  ; Find the next comment after the form, breaking if a node is not whitespace
+  (when-let [z (advance z :to (tag? :comment) :through z/whitespace?)]
+    ; Return the zloc if the comment is a result comment
+    (when (result-comment? (z/string z))
+      z)))
+
+(defn ?comment-expectation-string [z]
+  (let [nodes-following-assertion (iterate z/right* z)
+        ?sequence (comp seq sequence)]
+    (when-let [[fst-line & rest]
+               (?sequence
+                 (comp
+                   (take-while z/whitespace-or-comment?)
+                   (map z/string)
+                   (drop-while (complement result-comment?))
+                   ; stop searching at the first double line break
+                   (take-while (complement #{"\n"}))
+                   ; strip leading ;s from comments
+                   (map #(string/replace-first % #"^\s*;+\s?" "")))
+                 nodes-following-assertion)]
+      (let [[_ _ fst-line] (re-matches #"(?s)(=>{1,2})(.+)" fst-line)
+            s (string/trim (apply str fst-line rest))]
+        (when (seq s)
+          s)))))
+
+(defn result-comment-type [z]
+  (let [[_ t _] (re-matches #"(?s);+\s*(=>{1,2})(.+)" (z/string z))]
+    (symbol t)))
+
 (defn expectation-data
   "Parse a string representing the expectation for a test expression and an
   expression type, returning a vector of `[type str]` (or nil if none).
@@ -171,20 +211,20 @@
     (+ 1 1)
     ;; => 2"
   [test-sexpr-zloc]
-  (let [nodes-following-assertion (rest (iterate z/right* test-sexpr-zloc))]
-    (when-let [[fst-line & rest]
-               (->> nodes-following-assertion
-                    (take-while z/whitespace-or-comment?)
-                    (map z/string)
-                    (drop-while (complement result-comment?))
-                    ; stop searching at the first double line break
-                    (take-while (complement #{"\n"}))
-                    ; strip leading ;s from comments
-                    (map #(string/replace-first % #"^\s*;+\s?" ""))
-                    seq)]
-      (let [[_ type' fst-line] (re-matches #"(?s)(=>{1,2})(.+)" fst-line)]
-        [(symbol type')
-         (string/trim (apply str fst-line rest))]))))
+  ; Get the zloc for a result comment node ("; => ...") directly following
+  ; the test sexpr, if one exists
+  (when-let [rcz (?result-comment-zloc test-sexpr-zloc)]
+    ; Get the string following the => part of the comment (including to
+    ; following lines) if one exists that isn't empty
+    (if-let [ces (?comment-expectation-string rcz)]
+      [(result-comment-type rcz) ces]
+
+      ; Otherwise, check if there's a sexpr directly following the empty
+      ; result comment
+      (when-let [sexpr (advance rcz
+                         :to z/sexpr-able?
+                         :through (tag? :whitespace))]
+        [(result-comment-type rcz) (z/string sexpr)]))))
 
 (defn rct-data-seq
   "Take an rct zloc and return a series of maps with information about
