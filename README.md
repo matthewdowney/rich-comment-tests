@@ -129,10 +129,6 @@ For a project that only uses rich comment tests, you can add an alias to
          :exec-args {:dirs #{"src"}}}}}
 ```
 
-This is what happens when you run this project with:
-
-    clj -X:test1
-
 ## Changes
 v0.0.3
 - (@lilactown) Automatically quote result when used with => [#5](https://github.com/matthewdowney/rich-comment-tests/issues/5)

@@ -98,22 +98,40 @@
           z/right))
     (filter z/sexpr-able?)))
 
+(defn result-comment?
+  "A string like \";=> _\" or \";=>> _\" or \";; => _\""
+  [s]
+  (re-matches #"\s*;+\s?=>{1,2}.+\n" s))
+
+(defn remove-form-expstr-pairs [[a b & _ :as xs]]
+  (lazy-seq
+    (when (seq xs)
+      (if (and a b ; is a pair
+               (z/sexpr-able? b) ; starting with a form
+               (= (z/tag a) :comment) ; followed by expectation string comment
+               (result-comment? (z/string a)))
+        (remove-form-expstr-pairs (drop 2 xs))
+        (cons a (remove-form-expstr-pairs (rest xs)))))))
+
 (defn context-strings
-  "A series of string comments preceding the test sexpr (until a line break)."
+  "A series of string comments preceding the test sexpr."
   [test-sexpr-zloc]
   (let [nodes-preceding-assertion (rest (iterate z/left* test-sexpr-zloc))]
-    (reverse
-      (sequence
-        (comp
-          ; Look for *comments* preceding the assertion, but stop searching if
-          ; we hit a line break
-          (take-while
-            #(and (z/whitespace-or-comment? %) (not (z/linebreak? %))))
+    (->> nodes-preceding-assertion
+         ; take up to the next completely blank line
+         (take-while (complement z/linebreak?))
 
-          ; Convert to strings and remove any empties
-          (map z/string)
-          (remove (comp empty? string/trim)))
-        nodes-preceding-assertion))))
+         ; drop any form + expectation string comment pairs
+         (remove z/whitespace?)
+         remove-form-expstr-pairs
+
+         ; take all other comments and remove empties
+         (filter z/whitespace-or-comment?)
+         (map z/string)
+         (remove (comp empty? string/trim))
+
+         ; finally, put them back in top-to-bottom order
+         reverse)))
 
 (defn expectation-data
   "Parse a string representing the expectation for a test expression and an
@@ -132,9 +150,7 @@
     (+ 1 1)
     ;; => 2"
   [test-sexpr-zloc]
-  (let [nodes-following-assertion (rest (iterate z/right* test-sexpr-zloc))
-        ; A string like ";=> _" or ";=>> _" or ";; => _"
-        result-comment? #(re-matches #"\s*;+\s?=>{1,2}.+\n" %)]
+  (let [nodes-following-assertion (rest (iterate z/right* test-sexpr-zloc))]
     (when-let [[fst-line & rest]
                (->> nodes-following-assertion
                     (take-while z/whitespace-or-comment?)

@@ -1,6 +1,6 @@
 {:tasks
  {test {:doc "run unit tests"
-        :task (clojure "-X:test1")}
+        :task (clojure "-X:test")}
 
   coords {:doc "update the dependency coordinates in README.md"
           :requires ([clojure.string :refer [split split-lines replace]]
