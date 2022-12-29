@@ -27,7 +27,7 @@
       (let [ns-tests-result
             (binding [test/*report-counters* (atom test/*initial-report-counters*)]
               (rct/run-ns-tests! 'test-rct-with-bb))]
-        (is (= ns-tests-result {:test 1 :pass 4 :fail 0 :error 0})
+        (is (= ns-tests-result {:test 1 :pass 6 :fail 0 :error 0})
             "tests passing"))))
 
   (testing "matcho assertions"

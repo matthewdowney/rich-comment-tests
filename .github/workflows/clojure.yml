@@ -24,4 +24,4 @@ jobs:
       - name: Run Babashka tests
         run: bb test-bb
       - name: Run Clojure tests
-        run: clojure -X:test
+        run: bb test-clj

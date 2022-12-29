@@ -4,13 +4,13 @@
  {test-bb  {:doc  "run tests for Babashka support"
             :task test-rct-with-bb/main}
   test-clj {:doc  "run clj unit tests"
-            :task (clojure "-X:test1")}
+            :task (clojure "-X:test")}
   test     {:doc  "run all tests"
             :task (do
                     (println "Running Babashka tests...")
                     (run 'test-bb)
 
-                    (println "Running CLJ tests...")
+                    (println "\nRunning CLJ tests...")
                     (run 'test-clj))}
 
   coords   {:doc      "update the dependency coordinates in README.md"
