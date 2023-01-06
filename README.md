@@ -1,4 +1,4 @@
-![clojure CI](https://github.com/matthewdowney/rich-comment-tests/actions/workflows/clojure.yml/badge.svg)
+[![clojure CI](https://github.com/matthewdowney/rich-comment-tests/actions/workflows/clojure.yml/badge.svg)](https://github.com/matthewdowney/rich-comment-tests/actions/workflows/clojure.yml)
 [![bb compatible](https://raw.githubusercontent.com/babashka/babashka/master/logo/badge.svg)](https://babashka.org)
 
 # Rich Comment Tests (RCT)
