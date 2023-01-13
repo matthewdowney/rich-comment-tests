@@ -424,7 +424,6 @@ expected: (= (+ 1 1) 3)
   (+ 5 5) ;; => 10
   ; (System/getProperty "java.version.date") ;=> "2022-09-20"
 
-
   ;; Pattern matching assertions with =>>
   (range 3) ;=>> '(0 1 ...)
   (+ 5 5) ;=>> int?
@@ -439,6 +438,12 @@ expected: (= (+ 1 1) 3)
   ;; Or with spec
   (require '[clojure.spec.alpha :as s])
   (into {} (System/getProperties)) ;=>> (s/map-of string? string?)
+
+  ;; Or using a blank ;=> line to match against the next form
+  response
+  ;=>
+  {:status 200
+   :body "ok"}
   )
 
 (comment ;; For example...

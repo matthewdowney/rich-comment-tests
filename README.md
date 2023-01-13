@@ -66,6 +66,8 @@ RCT supports two kinds of assertions:
 - `=>>` asserts a [matcho](https://github.com/HealthSamurai/matcho) pattern 
   (and allows [... to indicate a partial pattern](https://github.com/matthewdowney/rich-comment-tests/issues/1))
 
+Assertions are either part of the comment or follow it directly.
+
 ```clojure 
 
 ^:rct/test
@@ -91,6 +93,12 @@ RCT supports two kinds of assertions:
   ;; Or with spec
   (require '[clojure.spec.alpha :as s])
   (into {} (System/getProperties)) ;=>> (s/map-of string? string?)
+
+  ;; Or using a blank ;=> line to match against the next form
+  response
+  ;=>
+  {:status 200
+   :body "ok"}
   )
 ```
 
