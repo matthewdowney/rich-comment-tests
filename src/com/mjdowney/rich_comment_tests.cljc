@@ -397,26 +397,50 @@
 
 ^:rct/test
 (comment
-  (def matcho-assert-that-fails
-    "^:rct/test
-    (comment
-      ; Pattern match the types of the map values
-      {:status 200 :body \"foo\"}
-      ;=>> {:status int?
-      ;     :body   int?}
-    )")
+  ;; Tests for things which should fail
 
-  (capture-clojure-test-out
-    (run-tests* (z/of-string matcho-assert-that-fails {:track-position? true})))
+  ;; These tests need a helper to run a test from a string and capture the
+  ;; output
+  (defn rctstr [s]
+    (capture-clojure-test-out
+      (run-tests*
+        (z/of-string
+          (str "^:rct/test\n (comment\n" s "\n)")
+          {:track-position? true}))))
+
+  (string/split-lines ; Test failure shows file + line number
+    (rctstr
+      ";; When asserting impossibilities
+       ;; The test fails
+       (+ 1 1) ;=> 3"))
+  ;=>> [#"FAIL in .*rich_comment_tests.cljc:5\)"
+  ;      ";; When asserting impossibilities"
+  ;      ";; The test fails"
+  ;      ""
+  ;      "expected: (= (+ 1 1) 3)"
+  ;      "  actual: (not (= 2 3))"]
+
+  (rctstr
+    "; Pattern match the types of the map values
+     {:status 200 :body \"foo\"}
+     ;=>> {:status int?
+     ;     :body   int?}")
 
   (string/includes? *1 "(rich_comment_tests.cljc:4)") ;=> true
   (string/includes? *2 "Matcho pattern mismatch:") ;=> true
 
   ;; Same assertion, but using matcho itself
-  (capture-clojure-test-out
-    (run-tests* (z/of-string matcho-assert-that-fails {:track-position? true})))
+  *3
   ;=>> #".*FAIL in \(.*\) \(rich_comment_tests.cljc:4\).*"
+
+  (defn fails? [s] (string/includes? (rctstr s) "FAIL in"))
+
+  ;; Assertion of `nil` fails when the result is not nil
+  (fails? "(+ 1 1) ;=>> nil?") ;=> true
+  (fails? "(+ 1 1) ;=>> nil")  ;=> true
+  (fails? "(+ 1 1) ;=> nil") ;=> true
   )
+
 
 ;; Demo some kinds of test assertions
 ^:rct/test

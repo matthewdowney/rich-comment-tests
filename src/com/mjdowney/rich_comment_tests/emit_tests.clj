@@ -54,9 +54,9 @@
   "Take parsed rct data and emit test code compatible with clojure.test."
   [{:keys [context-strings test-sexpr location] :as data}]
   (let [expectation-form (read-expectation-form data)
-        form (if expectation-form
-               (emit-assertion data expectation-form)
-               (try-bind-repl-vars test-sexpr (first location) *file*))]
+        form (if (= expectation-form :none)
+               (try-bind-repl-vars test-sexpr (first location) *file*)
+               (emit-assertion data expectation-form))]
     (if-some [ctx (butlast context-strings)]
       `(test/testing ~(string/trim (apply str ctx)) ~form)
       form)))
@@ -64,11 +64,12 @@
 ; By default, just try to read-string it, if present
 (defmethod read-expectation-form :default
   [{:keys [expectation-string] :as data}]
-  (when expectation-string
+  (if expectation-string
     (try
       (read-string expectation-string)
       (catch Exception _
-        (throw-bad-expectation-string data)))))
+        (throw-bad-expectation-string data)))
+    :none))
 
 (defn elide-ellipses-in-expectation-string
   "Allow writing \"...\" before end brackets / parens in maps, vectors, and
