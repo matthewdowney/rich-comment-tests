@@ -1,6 +1,7 @@
 (ns com.mjdowney.rich-comment-tests
   "RCT turns rich comment forms into tests."
   (:require [clojure.java.io :as io]
+            [clojure.pprint :as pprint]
             [clojure.string :as string]
             [clojure.test :as test]
             [com.mjdowney.rich-comment-tests.emit-tests :as tests]
@@ -303,15 +304,29 @@
       (test/inc-report-counter :test) ; treat each rct as a separate 'test'
       (try
         ; Build and eval test assertions for each test-sexpr in the rct
-        (run! (comp eval tests/emit-test-form) (rct-data-seq rct-zloc))
+        (run!
+          (fn [data]
+            (let [tf (tests/emit-test-form data)]
+              (try
+                (eval tf)
+                (catch Exception e
+                  (throw
+                    (ex-info
+                      (str "Got " (type e) " evaluating form:\n"
+                           (with-out-str (pprint/pprint (:test-sexpr data))))
+                      {::eval-error true}
+                      e))))))
+          (rct-data-seq rct-zloc))
 
         ; Copy clojure.test behavior in case of uncaught exception
         (catch Throwable e
           (test/do-report
             {:type :error
-             :message "Uncaught exception, not in assertion."
+             :message (if (::eval-error (ex-data e))
+                        (ex-message e)
+                        "Uncaught exception, not in assertion.")
              :expected nil
-             :actual e}))))
+             :actual (if (::eval-error (ex-data e)) (ex-cause e) e)}))))
     @test/*report-counters*))
 
 (defn run-file-tests!
@@ -366,32 +381,19 @@
        (do ~@body)
        (string/trim (.toString sw#)))))
 
-^:rct/test
-(comment
-  ; RCT to read directly as a string
-  (def form-that-fails
-    "^:rct/test
-    (comment
-      ;; When asserting impossibilities...
-      ;; The test fails
-      (+ 1 1) ;=> 3
-    )")
-
-  (capture-clojure-test-out
-    (run-tests* (z/of-string form-that-fails {:track-position? true})))
-
-  ; The test fails and outputs a failure report with the line number, context
-  ; strings, etc.
-  (string/includes?
-    *1
-    "(rich_comment_tests.cljc:5)
-;; When asserting impossibilities...
-;; The test fails
-
-expected: (= (+ 1 1) 3)
-  actual: (not (= 2 3))")
-  ;=> true
-  )
+(defmacro with-printlns
+  "Rebind `println` during the execution of body to print as normal, PLUS
+  save each line of output, and return a vector of printed lines."
+  [& body]
+  `(let [println# clojure.core/println
+         printed# (atom [])]
+     (with-redefs [println (fn [& args#]
+                             (apply println# args#)
+                             (binding [*print-readably* nil]
+                               (swap! printed# conj (apply pr-str args#)))
+                             nil)]
+       ~@body
+       @printed#)))
 
 ^:rct/test
 (comment
