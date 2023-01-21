@@ -27,7 +27,7 @@ RCT turns rich comment forms into tests.
 ## Coordinates
 [CHANGELOG](#changes) | Uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md)
 ```clojure
-io.github.matthewdowney/rich-comment-tests {:git/tag "v0.0.4" :git/sha "1c9342b"}
+io.github.matthewdowney/rich-comment-tests {:git/tag "v1.0.0" :git/sha "TODO"}
 ```
 
 ## Introduction
@@ -141,6 +141,10 @@ For a project that only uses rich comment tests, you can add an alias to
 ```
 
 ## Changes
+v1.0.0 — no breaking changes, API is now stable 🎉 (2023-01-21) 
+- Fix: `;=> nil` assertions ignored [#16](https://github.com/matthewdowney/rich-comment-tests/issues/16)
+- Add stdout capture helper [#15](https://github.com/matthewdowney/rich-comment-tests/issues/15)
+
 v0.0.4 (2023-01-04)
 - Add Babashka support [#14](https://github.com/matthewdowney/rich-comment-tests/pull/14)
 - Allow non-commented expectation strings following blank ;=> line [#13](https://github.com/matthewdowney/rich-comment-tests/issues/13)
