@@ -27,7 +27,7 @@ RCT turns rich comment forms into tests.
 ## Coordinates
 [CHANGELOG](#changes) | Uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md)
 ```clojure
-io.github.matthewdowney/rich-comment-tests {:git/tag "v1.0.0" :git/sha "TODO"}
+io.github.matthewdowney/rich-comment-tests {:git/tag "v1.0.0" :git/sha "73b0863"}
 ```
 
 ## Introduction
