@@ -7,6 +7,8 @@
             [rewrite-clj.zip :as z]))
 
 (defn throw-evaluation-error [test-form line-number file cause]
+  (test/with-test-out
+    (println "ERROR at " (str file ":" line-number) "-" (type cause)))
   (throw
     (ex-info
       (format
