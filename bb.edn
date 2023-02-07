@@ -1,34 +1,43 @@
 {:deps  {io.github.matthewdowney/rich-comment-tests {:local/root "."}}
  :paths ["bb"]
  :tasks
- {test-bb  {:doc  "run tests for Babashka support"
-            :task test-rct-with-bb/main}
-  test-clj {:doc  "run clj unit tests"
-            :task (clojure "-X:test")}
-  test     {:doc  "run all tests"
-            :task (do
-                    (println "Running Babashka tests...")
-                    (run 'test-bb)
+ {test-bb
+  {:doc  "run tests for Babashka support"
+   :task test-rct-with-bb/main}
+  test-bb-run-tests-in-file-tree
+  {:doc "tests run directly with run-tests-in-file-tree!"
+   :requires ([com.mjdowney.rich-comment-tests.test-runner :as rct])
+   :task (rct/run-tests-in-file-tree! {:dirs #{"bb"}})}
+  test-clj
+  {:doc  "run clj unit tests"
+   :task (clojure "-X:test")}
+  test
+  {:doc  "run all tests"
+   :task (do
+           (println "Running Babashka tests...")
+           (run 'test-bb)
+           (run 'test-bb-run-tests-in-file-tree)
 
-                    (println "\nRunning CLJ tests...")
-                    (run 'test-clj))}
+           (println "\nRunning CLJ tests...")
+           (run 'test-clj))}
 
-  coords   {:doc      "update the dependency coordinates in README.md"
-            :requires ([clojure.string :refer [split split-lines replace]]
-                       [babashka.process :refer [sh shell]])
-            :task     (let [tag (->> (sh "git" "tag") :out split-lines peek)
-                            sha (-> (sh "bash -c 'git log | head -1'")
-                                  :out
-                                  (split (re-pattern " "))
-                                  second
-                                  (subs 0 7))
-                            coords (str "{" (pr-str :git/tag tag :git/sha sha) "}")
-                            dep "io.github.matthewdowney/rich-comment-tests"]
+  coords
+  {:doc      "update the dependency coordinates in README.md"
+   :requires ([clojure.string :refer [split split-lines replace]]
+              [babashka.process :refer [sh shell]])
+   :task     (let [tag (->> (sh "git" "tag") :out split-lines peek)
+                   sha (-> (sh "bash -c 'git log | head -1'")
+                         :out
+                         (split (re-pattern " "))
+                         second
+                         (subs 0 7))
+                   coords (str "{" (pr-str :git/tag tag :git/sha sha) "}")
+                   dep "io.github.matthewdowney/rich-comment-tests"]
 
-                        (spit "README.md"
-                          (-> (slurp "README.md")
-                            (replace
-                              (re-pattern (format "(?s)%s \\{:git/tag \"[^\\}]+\\}" dep))
-                              (format "%s %s" dep coords))))
+               (spit "README.md"
+                 (-> (slurp "README.md")
+                   (replace
+                     (re-pattern (format "(?s)%s \\{:git/tag \"[^\\}]+\\}" dep))
+                     (format "%s %s" dep coords))))
 
-                        (shell "git diff README.md"))}}}
+               (shell "git diff README.md"))}}}

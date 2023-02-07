@@ -23,5 +23,7 @@ jobs:
           bb: 1.0.168
       - name: Run Babashka tests
         run: bb test-bb
+      - name: Call run-tests-in-file-tree from bb
+        run: bb test-bb-run-tests-in-file-tree
       - name: Run Clojure tests
         run: bb test-clj
