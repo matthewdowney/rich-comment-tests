@@ -57,7 +57,7 @@ writing small tests alongside the function under test.
 2. Run these tests during development by sending `run-ns-tests!` to the REPL (I 
    have an editor shortcut that reloads the namespace and then does this). 
 3. [Configure your test runner](#use-with-clojuretest) to run all the rct tests 
-   in your source tree.
+   in your source tree (see also: [Use with Babashka Tasks](#use-with-babashka-tasks)).
 
 ## Assertions
 
@@ -139,6 +139,22 @@ For a project that only uses rich comment tests, you can add an alias to
  {:test {:exec-fn com.mjdowney.rich-comment-tests.test-runner/run-tests-in-file-tree!
          :exec-args {:dirs #{"src"}}}}}
 ```
+
+## Use with Babashka tasks
+
+Sample bb.edn file to run RCTs via `bb test`:
+```clojure
+{:paths ["src"]
+ :deps  {}
+ :tasks {test
+         {:docs "Run unit tests."
+          :extra-deps {io.github.matthewdowney/rich-comment-tests {...}}
+          :requires ([com.mjdowney.rich-comment-tests.test-runner :as rct])
+          :task (rct/run-tests-in-file-tree! {:dirs #{"src"}})}}}
+```
+
+See also: [Running tests](https://book.babashka.org/#_running_tests) from the 
+Babashka book. 
 
 ## Changes
 v1.0.0 — no breaking changes, API is now stable 🎉 (2023-01-21) 

@@ -62,14 +62,16 @@
     (let [called-from-clojure-test-runner? (some? test/*report-counters*)]
       (binding [test/*report-counters* (if called-from-clojure-test-runner?
                                          test/*report-counters*
-                                         (ref test/*initial-report-counters*))]
+                                         (#?(:bb atom :clj ref)
+                                          test/*initial-report-counters*))]
 
         ; Run tests for the namespace by calling `run-file-tests!` with each
         ; associated file
         (doseq [[ns files] ns->fs]
-          (test/do-report {:type :begin-test-ns :ns ns})
-          (let [n-tests (:test @test/*report-counters*)
-                _ (doseq [file files] (rct/run-file-tests! file (find-ns ns)))
+          (let [ns (find-ns ns)
+                _ (test/do-report {:type :begin-test-ns :ns ns})
+                n-tests (:test @test/*report-counters*)
+                _ (doseq [file files] (rct/run-file-tests! file ns))
                 n-tests (- (:test @test/*report-counters*) n-tests)]
 
             (if (zero? n-tests)
