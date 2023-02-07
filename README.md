@@ -27,7 +27,7 @@ RCT turns rich comment forms into tests.
 ## Coordinates
 [CHANGELOG](#changes) | Uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md)
 ```clojure
-io.github.matthewdowney/rich-comment-tests {:git/tag "v1.0.0" :git/sha "73b0863"}
+io.github.matthewdowney/rich-comment-tests {:git/tag "v1.0.1" :git/sha "TODO"}
 ```
 
 ## Introduction
@@ -157,6 +157,10 @@ See also: [Running tests](https://book.babashka.org/#_running_tests) from the
 Babashka book. 
 
 ## Changes
+v1.0.1 (2023-02-07)
+- Fix: Babashka run-tests-in-file-tree! throws: No implementation of method: :getName of protocol: #'sci.impl.types/HasName [#17](https://github.com/matthewdowney/rich-comment-tests/issues/17)
+- Make it easier to find the line from which test exceptions are thrown
+
 v1.0.0 — no breaking changes, API is now stable 🎉 (2023-01-21) 
 - Fix: `;=> nil` assertions ignored [#16](https://github.com/matthewdowney/rich-comment-tests/issues/16)
 - Add stdout capture helper [#15](https://github.com/matthewdowney/rich-comment-tests/issues/15)
