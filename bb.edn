@@ -1,7 +1,12 @@
 {:deps  {io.github.matthewdowney/rich-comment-tests {:local/root "."}}
  :paths ["bb"]
  :tasks
- {test-bb
+ {loc
+  {:extra-deps {io.github.matthewdowney/linesofcode-bb {:git/tag "v0.0.1" :git/sha "4dbee31"}}
+   :requires   ([com.mjdowney.loc :as loc])
+   :task       (loc/breakdown {:root ["src" "bb" "test"] :exclude ["src/dev"]})}
+
+  test-bb
   {:doc  "run tests for Babashka support"
    :task test-rct-with-bb/main}
   test-bb-run-tests-in-file-tree
