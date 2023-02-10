@@ -71,6 +71,6 @@
 
 (comment
   (rct/run-file-tests!
-    "src/com/mjdowney/rich_comment_tests.cljc"
+    "src/com/mjdowney/rich_comment_tests.clj"
     (find-ns 'com.mjdowney.rich-comment-tests))
   )

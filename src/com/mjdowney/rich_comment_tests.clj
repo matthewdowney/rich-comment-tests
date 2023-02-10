@@ -410,7 +410,7 @@
       ";; When asserting impossibilities
        ;; The test fails
        (+ 1 1) ;=> 3"))
-  ;=>> [#"FAIL in .*rich_comment_tests.cljc:5\)"
+  ;=>> [#"FAIL in .*rich_comment_tests.clj:5\)"
   ;      ";; When asserting impossibilities"
   ;      ";; The test fails"
   ;      ""
@@ -423,12 +423,12 @@
      ;=>> {:status int?
      ;     :body   int?}")
 
-  (string/includes? *1 "(rich_comment_tests.cljc:4)") ;=> true
+  (string/includes? *1 "(rich_comment_tests.clj:4)") ;=> true
   (string/includes? *2 "Matcho pattern mismatch:") ;=> true
 
   ;; Same assertion, but using matcho itself
   *3
-  ;=>> #".*FAIL in \(.*\) \(rich_comment_tests.cljc:4\).*"
+  ;=>> #".*FAIL in \(.*\) \(rich_comment_tests.clj:4\).*"
 
   (defn fails? [s] (string/includes? (rctstr s) "FAIL in"))
 
