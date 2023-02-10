@@ -157,6 +157,9 @@ See also: [Running tests](https://book.babashka.org/#_running_tests) from the
 Babashka book. 
 
 ## Changes
+v1.0.2 (2023-02-09)
+- Update for Babashka test/*report-counters* is a ref instead of an atom for bb >= 1.1.171 [#18](https://github.com/matthewdowney/rich-comment-tests/issues/18)
+
 v1.0.1 (2023-02-07)
 - Fix: Babashka run-tests-in-file-tree! throws: No implementation of method: :getName of protocol: #'sci.impl.types/HasName [#17](https://github.com/matthewdowney/rich-comment-tests/issues/17)
 - Make it easier to find the line from which test exceptions are thrown
