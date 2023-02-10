@@ -22,7 +22,7 @@
       (is (some? form) "emits a sexpr")
       (with-out-str
         (binding [test/*test-out* *out*
-                  test/*report-counters* (atom test/*initial-report-counters*)]
+                  test/*report-counters* (ref test/*initial-report-counters*)]
           (eval form))))))
 
 (defn quote-str [s]

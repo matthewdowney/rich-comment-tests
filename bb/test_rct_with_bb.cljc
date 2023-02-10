@@ -25,7 +25,7 @@
   (testing "reflective tests"
     (testing "when evaluating a :rct/test comment form in a .bb file"
       (let [ns-tests-result
-            (binding [test/*report-counters* (atom test/*initial-report-counters*)]
+            (binding [test/*report-counters* (ref test/*initial-report-counters*)]
               (rct/run-ns-tests! 'test-rct-with-bb))]
         (is (= ns-tests-result {:test 1 :pass 6 :fail 0 :error 0})
             "tests passing"))))

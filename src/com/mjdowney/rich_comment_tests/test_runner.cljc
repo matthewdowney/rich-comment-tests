@@ -62,8 +62,7 @@
     (let [called-from-clojure-test-runner? (some? test/*report-counters*)]
       (binding [test/*report-counters* (if called-from-clojure-test-runner?
                                          test/*report-counters*
-                                         (#?(:bb atom :clj ref)
-                                          test/*initial-report-counters*))]
+                                         (ref test/*initial-report-counters*))]
 
         ; Run tests for the namespace by calling `run-file-tests!` with each
         ; associated file

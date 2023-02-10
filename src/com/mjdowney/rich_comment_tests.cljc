@@ -281,9 +281,7 @@
   [& body]
   `(if (clojure-test-reporting-active?)
      (do ~@body)
-     ; bb version of clojure.test uses atoms to store this state
-     (binding [test/*report-counters* (#?(:bb atom :clj ref)
-                                        test/*initial-report-counters*)]
+     (binding [test/*report-counters* (ref test/*initial-report-counters*)]
        (test/do-report {:type :begin-test-ns :ns *ns*})
        (let [ret# (do ~@body)]
          (test/do-report {:type :end-test-ns   :ns *ns*})
@@ -376,8 +374,7 @@
                ; Isolate this test that we expect to fail, in case this snippet
                ; is being run from clojure.test, so that its failure isn't
                ; counted with other test failures.
-               test/*report-counters* (#?(:bb atom :clj ref)
-                                        test/*initial-report-counters*)]
+               test/*report-counters* (ref test/*initial-report-counters*)]
        (do ~@body)
        (string/trim (.toString sw#)))))
 
