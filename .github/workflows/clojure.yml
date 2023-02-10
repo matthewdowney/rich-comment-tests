@@ -20,7 +20,7 @@ jobs:
       - uses: DeLaGuardo/setup-clojure@10.1
         with:
           cli: 1.11.1.1155
-          bb: 1.0.168
+          bb: 1.1.173
       - name: Run Babashka tests
         run: bb test-bb
       - name: Call run-tests-in-file-tree from bb
