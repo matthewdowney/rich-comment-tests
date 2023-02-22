@@ -1,0 +1,6 @@
+#development environment
+.calva/
+.clj-kondo/
+.cpcache/
+.nrepl-*
+.lsp/

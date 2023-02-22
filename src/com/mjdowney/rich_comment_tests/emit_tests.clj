@@ -63,8 +63,7 @@
       `(test/testing ~(string/trim (apply str ctx)) ~form)
       form)))
 
-; By default, just try to read-string it, if present
-(defmethod read-expectation-form :default
+(defn default-read-expectation 
   [{:keys [expectation-string] :as data}]
   (if expectation-string
     (try
@@ -72,6 +71,11 @@
       (catch Exception _
         (throw-bad-expectation-string data)))
     :none))
+
+; By default, just try to read-string it, if present
+(defmethod read-expectation-form :default
+  [data]
+  (default-read-expectation data))
 
 (defn elide-ellipses-in-expectation-string
   "Allow writing \"...\" before end brackets / parens in maps, vectors, and
@@ -114,9 +118,8 @@
 (defmethod read-expectation-form '=>>
   [data]
   (-> data ; update the expectation string then run default read logic
-      (update :expectation-string elide-ellipses-in-expectation-string)
-      (dissoc :expectation-type)
-      read-expectation-form))
+      (update :expectation-string elide-ellipses-in-expectation-string) 
+      default-read-expectation))
 
 ; Workaround for Babashka where the *file* is not available from test code
 (defmacro -*file* [] `(if *file* (.getName (io/file *file*)) "unknown_file"))
@@ -138,23 +141,13 @@
         test-form (list '= test-sexpr expectation-form)]
     `(let [form-result# ~(try-bind-repl-vars test-sexpr line-number *file*)
            test-result# (= form-result# '~expectation-form)]
-
-       (if test-result#
-         ; n.b. this needs to be fully qualified for babashka
-         (clojure.test/do-report
-           {:type :pass,
-            :message ~message
-            :expected '~test-form
-            :actual '~test-form
-            :line ~line-number
-            :file ~fname})
-         (clojure.test/do-report
-           {:type     :fail,
-            :message  ~message
-            :expected '~test-form
-            :actual   (list '~'not (list '~'= form-result# '~expectation-form))
-            :line     ~line-number
-            :file     ~fname})))))
+       (clojure.test/do-report
+        {:type (if test-result# :pass :fail),
+         :message ~message
+         :expected '~test-form
+         :actual (if test-result# '~test-form (list '~'not (list '~'= form-result# '~expectation-form)))
+         :line ~line-number
+         :file ~fname}))))
 
 (defn ?enclose [enclosing-form sexpr]
   (if enclosing-form
@@ -175,4 +168,41 @@
              -do-report# clojure.test/do-report
              dr# (fn [m#] (-do-report# (assoc m# :line ~line :file ~fname)))]
          (with-redefs [clojure.test/do-report dr#]
-           (m/assert ~expectation-form form-result#))))))
+           (m/assert form-result# ~expectation-form))))))
+
+(defn- ex-dispatch
+  [expectation-form]
+  (let [ex-value (eval expectation-form)]
+    (cond
+      (instance? Class ex-value) 
+      [expectation-form `(constantly true)]
+
+      (instance? java.util.regex.Pattern ex-value)
+      ['Exception `(fn [e#] (re-matches ~ex-value (.getMessage e#)))]
+
+      (map? ex-value) 
+      ['clojure.lang.ExceptionInfo `(fn [e#] (m/assert (ex-data e#) ~expectation-form))]
+
+      :else (throw (ex-info "Unsupported expectation" {:form expectation-form})))))
+
+(defmethod emit-assertion 'throws=>
+  [{:keys [context-strings test-sexpr location]} expectation-form]
+  (let [message (last context-strings)
+        line-number (first location)
+        fname (-*file*)
+        [ex-class ex-matcher] (ex-dispatch expectation-form)]
+    `(try
+       ~test-sexpr 
+       (clojure.test/do-report {:type :fail, :message ~message, :expected ~expectation-form, :file ~fname, :line ~line-number})
+       (catch ~ex-class e#
+         (clojure.test/do-report 
+           {:type (if (~ex-matcher e#) :pass :fail), 
+            :message ~message,
+            :expected ~expectation-form,
+            :actual e#,
+            :file ~fname, :line ~line-number})))))
+
+(comment
+  (emit-assertion {:expectation-type 'throws=> :test-sexpr '(throw (Exception. "")) :location [20]} 'Exception) 
+  (emit-assertion {:expectation-type 'throws=> :test-sexpr '(throw (Exception. "")) :location [20]} '{})
+  )

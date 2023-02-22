@@ -102,7 +102,7 @@
 (defn result-comment?
   "A string like \";=> _\" or \";=>> _\" or \";; => _\""
   [s]
-  (re-matches #"\s*;+\s?=>{1,2}.*\n" s))
+  (re-matches #"\s*;+\s?\S*?=>{1,2}.*\n" s))
 
 (defn pairs
   "Transducer from [a b c ... z] => [[a b] [b c] ... [z nil]]."
@@ -186,13 +186,13 @@
                    ; strip leading ;s from comments
                    (map #(string/replace-first % #"^\s*;+\s?" "")))
                  nodes-following-assertion)]
-      (let [[_ _ fst-line] (re-matches #"(?s)(=>{1,2})(.+)" fst-line)
+      (let [[_ _ fst-line] (re-matches #"(?s)(\S*?=>{1,2})(.+)" fst-line)
             s (string/trim (apply str fst-line rest))]
         (when (seq s)
           s)))))
 
 (defn result-comment-type [z]
-  (let [[_ t _] (re-matches #"(?s);+\s*(=>{1,2})(.+)" (z/string z))]
+  (let [[_ t _] (re-matches #"(?s);+\s*(\S*=>{1,2})(.+)" (z/string z))]
     (symbol t)))
 
 (defn expectation-data
