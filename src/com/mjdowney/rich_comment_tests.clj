@@ -378,6 +378,7 @@
        (do ~@body)
        (string/trim (.toString sw#)))))
 
+#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defmacro with-printlns
   "Rebind `println` during the execution of body to print as normal, PLUS
   save each line of output, and return a vector of printed lines."
@@ -459,6 +460,7 @@
   ;     :body   not-empty}
 
   ;; Or with spec
+  #_{:clj-kondo/ignore [:unused-namespace]}
   (require '[clojure.spec.alpha :as s])
   (into {} (System/getProperties)) ;=>> (s/map-of string? string?)
 

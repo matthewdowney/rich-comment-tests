@@ -33,7 +33,7 @@
 ;; Add color to the exception if the supplied expectation string is malformed
 ;; E.g. in the case of ;=> "Oops, the quotes aren't balanced...
 (defn throw-bad-expectation-string
-  [{:keys [context-strings test-sexpr expectation-string location] :as data}]
+  [{:keys [test-sexpr expectation-string location] :as data}]
   (throw
     (ex-info
       (format
@@ -44,6 +44,7 @@
 (defmulti emit-assertion
   "Build test assertion code given the rct data and an expectation-form, which
   is a `read-string`'d version of expectation-string."
+  #_{:clj-kondo/ignore [:unused-binding]}
   (fn [rct-data expectation-form]
     (:expectation-type rct-data)))
 
@@ -168,7 +169,7 @@
              -do-report# clojure.test/do-report
              dr# (fn [m#] (-do-report# (assoc m# :line ~line :file ~fname)))]
          (with-redefs [clojure.test/do-report dr#]
-           (m/assert form-result# ~expectation-form))))))
+           (m/assert ~expectation-form form-result#))))))
 
 (defn- ex-dispatch
   [expectation-form]
