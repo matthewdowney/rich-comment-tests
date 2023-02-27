@@ -1,6 +1,6 @@
 (ns com.mjdowney.rich-comment-tests-test
   (:require [clojure.string :as string]
-            [clojure.test :refer :all]
+            [clojure.test :refer [deftest]]
             [com.mjdowney.rich-comment-tests :as rct]
             [com.mjdowney.rich-comment-tests.test-runner :as test-runner]
             [matcho.core :as m]

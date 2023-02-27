@@ -1,10 +1,9 @@
 (ns test-rct-with-bb
   "Test that RCT runs on Babashka, too."
-  (:require [clojure.string :as str]
-            [clojure.test :as test]
-            [clojure.test :refer [deftest is testing]]
-            [com.mjdowney.rich-comment-tests :as rct]
-            [test-helpers :as t]))
+  (:require 
+   [clojure.test :as test :refer [deftest is testing]]
+   [com.mjdowney.rich-comment-tests :as rct]
+   [test-helpers :as t]))
 
 (deftest rct-tests
   (testing "simple assertions"
@@ -58,6 +57,7 @@
   ;     :body   not-empty}
 
   ;; Or with spec
+  #_{:clj-kondo/ignore [:unused-namespace]}
   (require '[clojure.spec.alpha :as s])
   (into {} (System/getProperties)) ;=>> (s/map-of string? string?)
   )
