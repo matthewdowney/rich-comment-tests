@@ -186,7 +186,8 @@
   {:pre [(string? file) (instance? Namespace ns)]}
   (binding [*ns* ns
             *file* file]
-    (run-tests* (z/of-file *file* {:track-position? true}))))
+    (let [resolver (fn [alias] (or (get {:current *ns*} alias) alias))]
+      (run-tests* (z/of-file *file* {:track-position? true :auto-resolve resolver})))))
 
 (defn require-file-for-ns
   "Given a Namespace, attempt to find a corresponding source file, or throw an
@@ -300,28 +301,31 @@
   (range 3) ;=> (0 1 2)
   (+ 5 5) ;; => 10
   ; (System/getProperty "java.version.date") ;=> "2022-09-20"
-
+  
   ;; Pattern matching assertions with =>>
   (range 3) ;=>> '(0 1 ...)
   (+ 5 5) ;=>> int?
-
+  
   ; (into {} (System/getProperties)) ;=>> {"java.version.date" #"\d{4}-\d{2}-\d{2}"}
-
+  
   (def response {:status 200 :body "ok"})
   response
   ;=>> {:status #(< % 300)
   ;     :body   not-empty}
-
+  
   ;; Or with spec
   #_{:clj-kondo/ignore [:unused-namespace]}
   (require '[clojure.spec.alpha :as s])
   (into {} (System/getProperties)) ;=>> (s/map-of string? string?)
-
+  
   ;; Or using a blank ;=> line to match against the next form
   response
   ;=>
   {:status 200
    :body "ok"}
+  
+  ;;auto resolve current ns keyword
+  ::ok ;=> ::ok
   )
 
 (comment ;; For example...
