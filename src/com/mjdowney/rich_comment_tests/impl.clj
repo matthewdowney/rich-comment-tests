@@ -29,11 +29,6 @@
         z/right))
    (filter z/sexpr-able?)))
 
-(defn result-comment?
-  "A string like \";=> _\" or \";=>> _\" or \";; => _\""
-  [s]
-  (re-matches #"\s*;+\s?\S*?=>{1,2}.*\n" s))
-
 (defn pairs
   "Transducer from [a b c ... z] => [[a b] [b c] ... [z nil]]."
   []
@@ -57,6 +52,18 @@
   "Like `(reverse (sequence xform coll))`."
   [xform coll]
   (transduce xform (completing #(cons %2 %1)) (list) coll))
+
+;;FIXME unify these similar patterns
+(defn result-comment?
+  "A string like \";=> _\" or \";=>> _\" or \";; => _\""
+  [s]
+  (re-matches #"\s*;+\s?\w*=>{1,2}.*\n" s))
+
+(defn result-comment-type [s]
+  (-> (re-matches #"(?s);+\s*(\w*=>{1,2})(.+)" s) (second) (symbol)))
+
+(defn expectation-str [fst-line]
+  (nth (re-matches #"(?s)(\w*=>{1,2})(.+)" fst-line) 2))
 
 (defn context-strings
   "A series of string comments preceding the test sexpr."
@@ -116,14 +123,9 @@
                    ; strip leading ;s from comments
                  (map #(string/replace-first % #"^\s*;+\s?" "")))
                 nodes-following-assertion)]
-      (let [[_ _ fst-line] (re-matches #"(?s)(\S*?=>{1,2})(.+)" fst-line)
-            s (string/trim (apply str fst-line rest))]
+      (let [s (string/trim (apply str (expectation-str fst-line) rest))]
         (when (seq s)
           s)))))
-
-(defn result-comment-type [z]
-  (let [[_ t _] (re-matches #"(?s);+\s*(\S*=>{1,2})(.+)" (z/string z))]
-    (symbol t)))
 
 (defn expectation-data
   "Parse a string representing the expectation for a test expression and an
@@ -148,11 +150,11 @@
     ; Get the string following the => part of the comment (including to
     ; following lines) if one exists that isn't empty
     (if-let [ces (?comment-expectation-string rcz)]
-      [(result-comment-type rcz) ces]
+      [(result-comment-type (z/string rcz)) ces]
 
       ; Otherwise, check if there's a sexpr directly following the empty
       ; result comment
       (when-let [sexpr (advance rcz
                                 :to z/sexpr-able?
                                 :through (tag? :whitespace))]
-        [(result-comment-type rcz) (z/string sexpr)]))))
+        [(result-comment-type (z/string rcz)) (z/string sexpr)]))))
