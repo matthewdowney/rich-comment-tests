@@ -61,12 +61,20 @@ writing small tests alongside the function under test.
 
 ## Assertions
 
-RCT supports two kinds of assertions:
+RCT supports three kinds of assertions:
 - `=>` asserts literal equality
 - `=>>` asserts a [matcho](https://github.com/HealthSamurai/matcho) pattern 
   (and allows [... to indicate a partial pattern](https://github.com/matthewdowney/rich-comment-tests/issues/1))
+- `throws=>` assert an exception expected, 
+  - you can specify an exception class, e.g. `(throw (Exception. "ok"));throws=> Exception`
+  - expect an error message. e.g. `(throws (Exception. "ok"));throws=> #"ok"`
+  - or a map if the exception is thrown with `ex-info`, which will be matched by a matcho pattern. e.g. `(throws (ex-info "ok" {:number 3})) ;throws=> {:number odd?}`
 
 Assertions are either part of the comment or follow it directly.
+
+## Extending assertions
+
+RCT treats a symbol directly followed by `=>` or `=>>` as an assertion operator. To make a new assertion operator, refer to `emit-tests/emit-assertion` multimethod.
 
 ```clojure 
 
