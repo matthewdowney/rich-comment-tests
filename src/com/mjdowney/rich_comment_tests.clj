@@ -52,9 +52,9 @@
 
   ; 'throws=>' tests exceptions
   (throw (Exception. "none")) ;throws=> Exception
-  ; 'throws=>' can match message
+  ; 'throws=>' can match a message
   (throw (Exception. "none")) ;throws=> #"none"
-  ; if throws an ex-info, it can match ex-data using matcho pattern
+  ; if throws an ex-info, its ex-data can be matched using a matcho pattern
   (throw (ex-info "none" {:number 3})) ;throws=> {:number odd?}
   )
 
