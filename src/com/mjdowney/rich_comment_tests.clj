@@ -49,6 +49,13 @@
   (range 10) ;;=>> [0 1 2 ...]
   (range 10) ;;=>> '(0 1 2 ...)
   (apply assoc {} (range 20)) ;=>> {0 1, 2 3 ...}
+
+  ; 'throws=>' tests exceptions
+  (throw (Exception. "none")) ;throws=> Exception
+  ; 'throws=>' can match message
+  (throw (Exception. "none")) ;throws=> #"none"
+  ; if throws an ex-info, it can match ex-data using matcho pattern
+  (throw (ex-info "none" {:number 3})) ;throws=> {:number odd?}
   )
 
 ;;; End example code

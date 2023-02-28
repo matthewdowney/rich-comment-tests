@@ -182,7 +182,7 @@
       ['Exception `(fn [e#] (re-matches ~ex-value (.getMessage e#)))]
 
       (map? ex-value) 
-      ['clojure.lang.ExceptionInfo `(fn [e#] (m/assert (ex-data e#) ~expectation-form))]
+      ['clojure.lang.ExceptionInfo `(fn [e#] (m/assert ~expectation-form (ex-data e#)))]
 
       :else (throw (ex-info "Unsupported expectation" {:form expectation-form})))))
 

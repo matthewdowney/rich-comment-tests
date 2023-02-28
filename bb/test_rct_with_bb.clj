@@ -62,6 +62,7 @@
   (into {} (System/getProperties)) ;=>> (s/map-of string? string?)
   )
 
+#_{:clj-kondo/ignore [:clojure-lsp/unused-public-var]}
 (defn main []
   (let [{:keys [fail error] :as results}
         (clojure.test/test-ns 'test-rct-with-bb)]
