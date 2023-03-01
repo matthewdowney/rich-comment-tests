@@ -81,7 +81,11 @@
 
         ; Finish clojure.test state
         (when-not called-from-clojure-test-runner?
-          (test/do-report (assoc @test/*report-counters* :type :summary)))
+          (let [{:keys [error fail] :as counters} (deref test/*report-counters*)]
+            (test/do-report (assoc counters :type :summary))
+            ; When called in a standalone runner environment, make sure caller knows it
+            (when-not (zero? (+ error fail))
+              (throw (ex-info "Not all tests succeed" {:error error :fail fail})))))
         @test/*report-counters*))))
 
 #_(run-tests-in-file-tree! :dirs #{"src"})
