@@ -53,17 +53,26 @@
   [xform coll]
   (transduce xform (completing #(cons %2 %1)) (list) coll))
 
-;;FIXME unify these similar patterns
-(defn result-comment?
-  "A string like \";=> _\" or \";=>> _\" or \";; => _\""
-  [s]
-  (re-matches #"\s*;+\s?\w*=>{1,2}.*\n" s))
+(let [operator "\\w*=>{1,2}"
+      ptn-comment (re-pattern (str "\\s*;+\\s*?" operator ".*\\n"))
+      ptn-op-type (re-pattern (str "(?s);+\\s*(" operator ").+"))
+      ptn-expectation (re-pattern (str "(?s)" operator "(.+)"))]
+  (defn result-comment?
+    [s]
+    (boolean (re-matches ptn-comment s)))
 
-(defn result-comment-type [s]
-  (-> (re-matches #"(?s);+\s*(\w*=>{1,2})(.+)" s) (second) (symbol)))
+  (defn result-comment-type [s]
+    (-> (re-matches ptn-op-type s) (second) (symbol)))
 
-(defn expectation-str [fst-line]
-  (nth (re-matches #"(?s)(\w*=>{1,2})(.+)" fst-line) 2))
+  (defn expectation-str [fst-line]
+    (-> (re-matches ptn-expectation fst-line) second)))
+
+^:rct/test
+(comment
+  (result-comment? "  ;;  throws=> 3\n") ;=> true
+  (result-comment-type ";;   =>\n") ;=> =>
+  (expectation-str "=>>:ok") ;=> ":ok"
+  )
 
 (defn context-strings
   "A series of string comments preceding the test sexpr."

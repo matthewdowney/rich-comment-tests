@@ -32,11 +32,10 @@
               [babashka.process :refer [sh shell]])
    :task     (let [tag (->> (sh "git" "tag") :out split-lines peek)
                    sha (-> (sh "bash -c 'git log | head -1'")
-                         :out
-                         (split (re-pattern " "))
-                         second
-                         (subs 0 7))
-                   coords (str "{" (pr-str :git/tag tag :git/sha sha) "}")
+                           :out
+                           (split (re-pattern " "))
+                           second)
+                   coords (cond-> {:git/sha sha} (not (empty? tag)) (assoc :git/tag tag) :always pr-str) 
                    dep "io.github.matthewdowney/rich-comment-tests"]
 
                (spit "README.md"
