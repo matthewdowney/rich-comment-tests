@@ -36,12 +36,12 @@
                            (split (re-pattern " "))
                            second)
                    coords (cond-> {:git/sha sha} (not (empty? tag)) (assoc :git/tag tag) :always pr-str) 
-                   dep "io.github.matthewdowney/rich-comment-tests"]
+                   dep "io.github.robertluo/rich-comment-tests"]
 
                (spit "README.md"
                  (-> (slurp "README.md")
                    (replace
-                     (re-pattern (format "(?s)%s \\{:git/tag \"[^\\}]+\\}" dep))
+                     (re-pattern (format "(?s)%s #:git\\{:sha \"[^\\}]+\\}" dep))
                      (format "%s %s" dep coords))))
 
                (shell "git diff README.md"))}}}

@@ -27,7 +27,7 @@ RCT turns rich comment forms into tests.
 ## Coordinates
 [CHANGELOG](#changes) | Uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md)
 ```clojure
-io.github.matthewdowney/rich-comment-tests #:git{:sha "ce01fe6c99a4fccc12d65d0bdd58b5a92f0ee757n"}
+io.github.robertluo/rich-comment-tests #:git{:sha "22ea82d321b99f659f18c5b8822859292bd1026cn"}
 ```
 
 ## Introduction
@@ -65,10 +65,8 @@ RCT supports three kinds of assertions:
 - `=>` asserts literal equality
 - `=>>` asserts a [matcho](https://github.com/HealthSamurai/matcho) pattern 
   (and allows [... to indicate a partial pattern](https://github.com/matthewdowney/rich-comment-tests/issues/1))
-- `throws=>` assert an exception expected, 
-  - you can specify an exception class, e.g. `(throw (Exception. "ok"));throws=> Exception`
-  - expect an error message. e.g. `(throws (Exception. "ok"));throws=> #"ok"`
-  - or a map if the exception is thrown with `ex-info`, which will be matched by a matcho pattern. e.g. `(throws (ex-info "ok" {:number 3})) ;throws=> {:number odd?}`
+- `throws=>>` asserts an exception expected, the thrown exception (Throwable) will turns into a error record, like `{:error/class Exception, :error/message "this is an error", :error/cause #{another...} :error/data {:some 'data}}`, an example:
+ `(throw (ex-info "ok" {:number 3})) ;throws=>> #:error{:message #".." :data {:number odd?}}`
 
 Assertions are either part of the comment or follow it directly.
 
@@ -161,10 +159,16 @@ Sample bb.edn file to run RCTs via `bb test`:
           :task (rct/run-tests-in-file-tree! {:dirs #{"src"}})}}}
 ```
 
-See also: [Running tests](https://book.babashka.org/#_running_tests) from the 
-Babashka book. 
+See also: [Running tests](https://book.babashka.org/#_running_tests) from the Babashka book. 
 
 ## Changes
+
+This fork
+- Introduces `throws=>>` operator to catch expected `Throwable`(Exceptions).
+- Exchange the order of `=>` form to match the `(is (= .. ..))` concept.
+- Fix a bug that namespaced keywords can not be correctly resolved.
+- Fix the standalone test runner, it will have an exit code of 1 if some tests do not succeed.
+
 v1.0.2 (2023-02-09)
 - Update for Babashka test/*report-counters* is a ref instead of an atom for bb >= 1.1.171 [#18](https://github.com/matthewdowney/rich-comment-tests/issues/18)
 
