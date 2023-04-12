@@ -69,7 +69,7 @@
   "Is the node at the `zloc` a ^:rct/test (comment ...) block?"
   [zloc]
   (when-let [sexpr (when (z/sexpr-able? zloc) (z/sexpr zloc))]
-    (and (= (first sexpr) 'comment) (:rct/test (meta sexpr)))))
+    (and (seqable? sexpr) (= (first sexpr) 'comment) (:rct/test (meta sexpr)))))
 
 (defn iterate1
   "Like `clojure.core/iterate`, but stops at the first `nil` element."
@@ -471,3 +471,8 @@
 
 (comment ;; For example...
   (run-ns-tests! *ns*))
+
+; N.B. leaving these top-level literals to catch regressions of a bug
+; where RCT would assume all sexprable top level forms are countable.
+1
+\x
