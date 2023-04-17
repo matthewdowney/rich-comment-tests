@@ -6,7 +6,13 @@
   "Is the node at the `zloc` a ^:rct/test (comment ...) block?"
   [zloc]
   (when-let [sexpr (when (z/sexpr-able? zloc) (z/sexpr zloc))]
-    (and (= (first sexpr) 'comment) (:rct/test (meta sexpr)))))
+    (and (seqable? sexpr) (= (first sexpr) 'comment) (:rct/test (meta sexpr)))))
+
+^:rct/test
+(comment
+  (rct? (z/of-string "3")) ;=> false
+  (rct? (z/of-string "^:rct/test (comment )")) ;=> true
+  )
 
 (defn iterate1
   "Like `clojure.core/iterate`, but stops at the first `nil` element."
