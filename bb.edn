@@ -32,17 +32,27 @@
               [babashka.process :refer [sh shell]])
    :task     (let [tag (->> (sh "git" "tag") :out split-lines peek)
                    sha (-> (sh "bash -c 'git log | head -1'")
-                         :out
-                         (split (re-pattern " "))
-                         second
-                         (subs 0 7))
+                           :out
+                           (split (re-pattern " "))
+                           second
+                           (subs 0 7))
                    coords (str "{" (pr-str :git/tag tag :git/sha sha) "}")
                    dep "io.github.matthewdowney/rich-comment-tests"]
 
                (spit "README.md"
-                 (-> (slurp "README.md")
-                   (replace
-                     (re-pattern (format "(?s)%s \\{:git/tag \"[^\\}]+\\}" dep))
-                     (format "%s %s" dep coords))))
+                     (-> (slurp "README.md")
+                         (replace
+                          (re-pattern (format "(?s)%s \\{:git/tag \"[^\\}]+\\}" dep))
+                          (format "%s %s" dep coords))))
 
-               (shell "git diff README.md"))}}}
+               (shell "git diff README.md"))}
+
+  uber {:doc "Build uberjar"
+        :task (do
+                (println "Building uberjar...")
+                (clojure "-T:build jar"))}
+
+  deploy {:doc "Deploy to Clojars"
+          :task (do
+                  (println "Deploying to clojars")
+                  (clojure "-T:build deploy"))}}}

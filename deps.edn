@@ -9,4 +9,8 @@
                                  "-m" "cognitect.test-runner"]
                    :exec-fn     cognitect.test-runner.api/test}
            :test1 {:exec-fn   com.mjdowney.rich-comment-tests.test-runner/run-tests-in-file-tree!
-                   :exec-args {:dirs #{"src"}}}}}
+                   :exec-args {:dirs #{"src"}}}
+
+           :build {:ns-default build
+                  :deps {io.github.seancorfield/build-clj {:git/tag "v0.8.3" :git/sha "7ac1f8d"}
+                               io.github.clojure/tools.build {:git/tag "v0.9.4" :git/sha "76b78fe"}}}}}
