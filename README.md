@@ -30,6 +30,10 @@ RCT turns rich comment forms into tests.
 io.github.matthewdowney/rich-comment-tests {:git/tag "v1.0.3" :git/sha "a8711e9"}
 ```
 
+Clojars coordinates also available:
+
+[![Clojars Project](https://img.shields.io/clojars/v/io.github.matthewdowney/rich-comment-tests.svg)](https://clojars.org/io.github.matthewdowney/rich-comment-tests)
+
 ## Introduction
 
 RCT is a version of the excellent [hyperfiddle/rcf](https://github.com/hyperfiddle/rcf)
