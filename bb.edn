@@ -2,7 +2,7 @@
  :paths ["bb"]
  :tasks
  {loc
-  {:extra-deps {io.github.matthewdowney/linesofcode-bb {:git/tag "v0.0.1" :git/sha "4dbee31"}}
+  {:extra-deps {io.github.matthewdowney/linesofcode-bb {:git/tag "v0.0.2" :git/sha "12e4f52"}}
    :requires   ([com.mjdowney.loc :as loc])
    :task       (loc/breakdown {:root ["src" "bb" "test"] :exclude ["src/dev"]})}
 

@@ -268,7 +268,7 @@
   ;      ";; When asserting impossibilities"
   ;      ";; The test fails"
   ;      ""
-  ;      "expected: (= 3 (+ 1 1))"
+  ;      "expected: (= (+ 1 1) 3)"
   ;      "  actual: (not (= 2 3))"]
 
   (rctstr
