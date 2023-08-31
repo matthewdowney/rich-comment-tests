@@ -139,14 +139,14 @@
   (let [message (last context-strings)
         line-number (first location)
         fname (-*file*)
-        test-form (list '= test-sexpr expectation-form)]
+        test-form (list '= expectation-form test-sexpr)]
     `(let [form-result# ~(try-bind-repl-vars test-sexpr line-number *file*)
-           test-result# (= form-result# '~expectation-form)]
+           test-result# (= '~expectation-form form-result#)]
        (clojure.test/do-report
         {:type (if test-result# :pass :fail),
          :message ~message
          :expected '~test-form
-         :actual (if test-result# '~test-form (list '~'not (list '~'= form-result# '~expectation-form)))
+         :actual (if test-result# '~test-form (list '~'not (list '~'= '~expectation-form form-result#)))
          :line ~line-number
          :file ~fname}))))
 

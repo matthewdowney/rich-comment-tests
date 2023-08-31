@@ -268,8 +268,8 @@
   ;      ";; When asserting impossibilities"
   ;      ";; The test fails"
   ;      ""
-  ;      "expected: (= (+ 1 1) 3)"
-  ;      "  actual: (not (= 2 3))"]
+  ;      "expected: (= 3 (+ 1 1))"
+  ;      "  actual: (not (= 3 2))"]
 
   (rctstr
     "; Pattern match the types of the map values

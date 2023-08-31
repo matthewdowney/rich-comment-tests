@@ -8,7 +8,7 @@
 (deftest rct-tests
   (testing "simple assertions"
     (t/passes? "(range 3) ;=> (0 1 2)")
-    (t/fails? "(range 3) ;=> (0 2 2)" "actual: (not (= (0 1 2) (0 2 2)))")
+    (t/fails? "(range 3) ;=> (0 2 2)" "actual: (not (= (0 2 2) (0 1 2)))")
 
     (t/passes?
       "(+ 5 5)
@@ -19,7 +19,7 @@
       (* 5 5) ;=> 35"
 
       "; 5 times 5" ; includes the context
-      "actual: (not (= 25 35))"))
+      "actual: (not (= 35 25))"))
 
   (testing "reflective tests"
     (testing "when evaluating a :rct/test comment form in a .bb file"
