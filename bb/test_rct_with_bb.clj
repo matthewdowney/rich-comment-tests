@@ -74,3 +74,9 @@
     "src/com/mjdowney/rich_comment_tests.clj"
     (find-ns 'com.mjdowney.rich-comment-tests))
   )
+
+(deftest auto-resolved-keywords-test
+  ; #25: ::kw in test forms resolves in *ns*, same as in expectation strings
+  (binding [*ns* (the-ns 'test-rct-with-bb)]
+    (t/passes? "(assoc {} ::foo 1) ;=> {::foo 1}")
+    (t/passes? "::str/x ;=> :clojure.string/x")))

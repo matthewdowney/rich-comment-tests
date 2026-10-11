@@ -5,6 +5,7 @@
             [clojure.string :as string]
             [clojure.test :as test]
             [com.mjdowney.rich-comment-tests.emit-tests :as tests]
+            [rewrite-clj.node :as n]
             [rewrite-clj.zip :as z])
   (:import (clojure.lang Namespace)))
 
@@ -227,6 +228,20 @@
                          :through (tag? :whitespace))]
         [(result-comment-type rcz) (z/string sexpr)]))))
 
+(defn resolve-ns-alias
+  "Resolve `::kw` (alias = :current) and `::alias/kw` against *ns*, like the
+  reader does. Unknown aliases fall back to rewrite-clj's placeholder."
+  [alias]
+  (if (= alias :current)
+    (ns-name *ns*)
+    (or (some-> (get (ns-aliases *ns*) alias) ns-name)
+        (symbol (str "??_" alias "_??")))))
+
+(defn test-sexpr
+  "The sexpr for a test form, with auto-resolved keywords resolved in *ns*."
+  [zloc]
+  (n/sexpr (z/node zloc) {:auto-resolve resolve-ns-alias}))
+
 (defn rct-data-seq
   "Take an rct zloc and return a series of maps with information about
   tests to run."
@@ -234,7 +249,7 @@
   (for [zloc (test-sexpr-zlocs rct-zloc)
         :let [[et es] (expectation-data zloc)]]
     {:context-strings (context-strings zloc)
-     :test-sexpr (z/sexpr zloc)
+     :test-sexpr (test-sexpr zloc)
      :expectation-string es
      :expectation-type et
      :location (z/position zloc)}))
