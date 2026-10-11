@@ -80,3 +80,30 @@
         (println x)         nil
         (dissoc x :a)       {:b 2}}
       strs)))
+
+(deftest first-form-on-comment-line-test
+  ; Regression: when the first test form shares a line with `(comment`,
+  ; walking left to collect context strings used to never terminate
+  (let [form "^:rct/test\n(comment (+ 1 1) ;=> 2\n\n  ;; Doubling\n  (* 2 2) ;=> 4\n)"
+        fut (future
+              (->> (z/of-string form {:track-position? true})
+                rct/rct-zlocs
+                (mapcat rct/rct-data-seq)
+                (mapv (juxt :test-sexpr :expectation-string :context-strings))))
+        result (deref fut 5000 ::timeout)]
+    (when (= result ::timeout) (future-cancel fut))
+    (is (= '[[(+ 1 1) "2" ()]
+             [(* 2 2) "4" (";; Doubling\n")]]
+           result))))
+
+(deftest auto-resolved-keywords-test
+  ; Regression for #25: ::kw and ::alias/kw in test forms should resolve in
+  ; *ns*, the same way they do in expectation strings
+  (let [form "^:rct/test\n(comment\n  (assoc {} ::foo 1) ;; => {::foo 1}\n  (require '[clojure.string :as s])\n  ::s/x ;=> :clojure.string/x\n  ::foo ;=>> ::foo\n)"
+        counts (atom nil)
+        out (binding [*ns* (the-ns 'com.mjdowney.rich-comment-tests-test)]
+              (rct/capture-clojure-test-out
+                (reset! counts
+                  (rct/run-tests* (z/of-string form {:track-position? true})))))]
+    (is (= "" out))
+    (is (= {:test 1 :pass 3 :fail 0 :error 0} @counts))))
