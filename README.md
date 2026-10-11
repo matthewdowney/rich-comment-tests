@@ -27,7 +27,7 @@ RCT turns rich comment forms into tests.
 ## Coordinates
 [CHANGELOG](#changes) | Uses [Break Versioning](https://github.com/ptaoussanis/encore/blob/master/BREAK-VERSIONING.md)
 ```clojure
-io.github.matthewdowney/rich-comment-tests {:git/tag "v1.0.4" :git/sha "e3e16d3"}
+io.github.matthewdowney/rich-comment-tests {:git/tag "v1.0.4" :git/sha "a37cacc"}
 ```
 
 Clojars coordinates also available:
@@ -164,6 +164,8 @@ Babashka book.
 v1.0.4 (2026-10-11)
 - Fix: hang when the first test form is on the same line as `(comment`,
   e.g. `^:rct/test (comment (f 1) ;=> 1 ...)`
+- Fix: auto-resolved keywords (`::foo`, `::alias/foo`) in test forms resolved
+  to placeholder namespaces [#25](https://github.com/matthewdowney/rich-comment-tests/issues/25)
 
 v1.0.3 (2023-04-12)
 - Fix: failure to analyze namespaces with top level sexprs which aren't 
