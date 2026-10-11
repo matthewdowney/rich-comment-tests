@@ -131,7 +131,7 @@
 (defn context-strings
   "A series of string comments preceding the test sexpr."
   [test-sexpr-zloc]
-  (let [nodes-preceding-assertion (rest (iterate z/left* test-sexpr-zloc))]
+  (let [nodes-preceding-assertion (rest (iterate1 z/left* test-sexpr-zloc))]
     (letfn [(form-expstr-pair? [[a b]]
               (and a b ; is a pair
                    (z/sexpr-able? b) ; starting with a form
