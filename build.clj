@@ -26,7 +26,11 @@
                 :scm {:url "https://github.com/matthewdowney/rich-comment-tests"
                       :connection "scm:git:git://github.com/matthewdowney/rich-comment-tests.git"
                       :developerConnection "scm:git:ssh://git@github.com/matthewdowney/rich-comment-tests.git"}
-                :src-dirs ["src"]})
+                :src-dirs ["src"]
+                :pom-data [[:licenses
+                            [:license
+                             [:name "MIT License"]
+                             [:url "https://opensource.org/licenses/MIT"]]]]})
   (b/copy-dir {:src-dirs ["src" "resources"]
                :target-dir class-dir})
   (b/jar {:class-dir class-dir
